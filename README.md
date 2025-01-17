@@ -29,10 +29,32 @@ npm run build
 1. 构建命令：`npm run build`
 2. 输出目录：`.next`
 3. Node.js 版本：20.x
+4. 环境变量：
+   - `HF_TOKEN`: Hugging Face API 密钥
 
 ### 已知问题及解决方案
 
-1. Gradio Client 构建错误
+1. TypeScript 类型错误
+
+```
+Type error: Parameter 'context' implicitly has an 'any' type
+```
+
+解决方案：
+在 Worker 函数中添加正确的类型定义：
+```typescript
+export interface Env {
+  HF_TOKEN: string;
+}
+
+export async function onRequest(
+  context: { request: Request; env: Env }
+) {
+  // ...
+}
+```
+
+2. Gradio Client 构建错误
 
 ```
 Module build failed: UnhandledSchemeError: Reading from "node:buffer" is not handled by plugins
@@ -61,7 +83,7 @@ b) 或添加 Node.js 兼容性标志：
 }
 ```
 
-2. Tailwind CSS 警告
+3. Tailwind CSS 警告
 
 ```
 warn - No utility classes were detected in your source files
@@ -76,14 +98,24 @@ warn - No utility classes were detected in your source files
 ### Whisper 语音转文字 API
 
 接口说明：
-- 端点：`Ce-creater/whisper`
+- 端点：`https://api-inference.huggingface.co/models/openai/whisper-large-v3`
 - 方法：POST
+- 请求头：
+  - `Authorization`: `Bearer ${HF_TOKEN}`
 - 参数：音频文件（支持多种格式）
 
 使用示例：
 ```typescript
-const app = await client("Ce-creater/whisper");
-const result = await app.predict("/predict", [audioFile]);
+const response = await fetch(
+  'https://api-inference.huggingface.co/models/openai/whisper-large-v3',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.HF_TOKEN}`
+    },
+    body: audioFile
+  }
+);
 ```
 
 ## 贡献指南

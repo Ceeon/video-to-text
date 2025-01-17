@@ -1,6 +1,12 @@
 import { client } from '@gradio/client';
 
-export async function onRequest(context) {
+export interface Env {
+  HF_TOKEN: string;
+}
+
+export async function onRequest(
+  context: { request: Request; env: Env }
+) {
   // 处理 CORS
   if (context.request.method === 'OPTIONS') {
     return new Response(null, {
