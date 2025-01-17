@@ -25,11 +25,13 @@ export default function Home() {
 
     try {
       setLoading(true);
-      const app = await client("Ce-creater/whisper");
-      const result = await app.predict("/predict", [selectedFile]);
+      const app = await client("https://ce-creater-whisper.hf.space/");
+      const result = await app.predict(1, [
+        selectedFile,  // 上传音频文件
+      ]);
       
-      if (Array.isArray(result.data) && result.data.length > 0) {
-        setResult(result.data[0]);
+      if (result?.data) {
+        setResult(result.data);
       } else {
         setResult('无法识别文件内容');
       }
