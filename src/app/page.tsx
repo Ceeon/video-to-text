@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import { client } from '@gradio/client';
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -24,32 +25,22 @@ export default function Home() {
 
     try {
       setLoading(true);
+      console.log('Starting file upload...');
 
-      // 创建FormData对象
-      const formData = new FormData();
-      formData.append('audio', selectedFile);
+      // 创建app实例
+      const app = await client("Ce-creater/whisper");
+      console.log('Client created:', app);
 
-      // 调用 Hugging Face Inference API
-      const response = await fetch(
-        'https://api-inference.huggingface.co/models/openai/whisper-large-v3',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_HF_TOKEN}`,
-          },
-          body: formData
-        }
-      );
+      // 将File对象转换为Blob
+      const fileBlob = new Blob([await selectedFile.arrayBuffer()], { type: selectedFile.type });
+      console.log('File converted to blob:', fileBlob);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      // 使用API文档中的方式调用
+      const result = await app.predict(0, [fileBlob]);
+      console.log('Prediction result:', result);
 
-      const data = await response.json();
-      console.log('API Response:', data);
-
-      if (data.text) {
-        setResult(data.text);
+      if (result && result.data && result.data[0]) {
+        setResult(result.data[0]);
       } else {
         setResult('无法识别文件内容');
       }
