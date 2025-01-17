@@ -40,6 +40,27 @@ async function handleTranscribe(request, env) {
 
     console.log('开始处理文件:', file.name, 'size:', file.size);
 
+    // 根据文件扩展名设置正确的 Content-Type
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    let contentType = 'audio/mpeg';  // 默认类型
+    
+    switch (fileExtension) {
+      case 'mp4':
+        contentType = 'audio/mp4';
+        break;
+      case 'mp3':
+        contentType = 'audio/mpeg';
+        break;
+      case 'wav':
+        contentType = 'audio/wav';
+        break;
+      case 'm4a':
+        contentType = 'audio/mp4';
+        break;
+      default:
+        console.log('未知的文件类型:', fileExtension);
+    }
+
     // 获取文件的二进制数据
     const audioData = await file.arrayBuffer();
 
@@ -50,9 +71,9 @@ async function handleTranscribe(request, env) {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${env.HF_TOKEN}`,
-          'Content-Type': 'audio/mp4'  // 根据实际文件类型设置
+          'Content-Type': contentType
         },
-        body: audioData  // 直接发送二进制数据
+        body: audioData
       }
     );
 
@@ -88,7 +109,10 @@ async function handleTranscribe(request, env) {
     return new Response(JSON.stringify({
       sentences,
       metadata: {
-        totalSentences: sentences.length
+        totalSentences: sentences.length,
+        fileType: contentType,
+        fileName: file.name,
+        fileSize: file.size
       }
     }), {
       headers: {
@@ -101,7 +125,12 @@ async function handleTranscribe(request, env) {
     console.error('转录请求处理错误:', error);
     return new Response(JSON.stringify({ 
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      details: {
+        fileName: file?.name,
+        fileSize: file?.size,
+        stack: error.stack
+      }
     }), {
       status: 500,
       headers: {
