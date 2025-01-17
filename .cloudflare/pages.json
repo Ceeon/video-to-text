@@ -1,1 +1,5 @@
-{"functions":{"compatibility_flags":["nodejs_compat"]}}
+{
+  "functions": {
+    "compatibility_flags": ["nodejs_compat"]
+  }
+} 

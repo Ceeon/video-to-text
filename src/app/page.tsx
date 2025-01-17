@@ -25,20 +25,30 @@ export default function Home() {
     try {
       setLoading(true);
       
-      // 将文件转换为 blob
-      const fileBlob = await selectedFile.arrayBuffer().then(buffer => 
-        new Blob([buffer], { type: selectedFile.type })
-      );
+      // 将文件转换为 base64
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          resolve(base64String.split(',')[1]); // 移除 "data:audio/wav;base64," 前缀
+        };
+        reader.readAsDataURL(selectedFile);
+      });
 
       // 构造请求数据
-      const response = await fetch('https://ce-creater-whisper.hf.space/run/predict', {
+      const response = await fetch('https://ce-creater-whisper.hf.space/predict', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           fn_index: 0,
-          data: [fileBlob],
+          data: [{
+            name: selectedFile.name,
+            data: base64,
+            size: selectedFile.size,
+            type: selectedFile.type
+          }],
           session_hash: Math.random().toString(36).substring(7)
         })
       });
