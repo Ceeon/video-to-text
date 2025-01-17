@@ -1,130 +1,208 @@
-# Video to Text
+# 音视频转文字应用
 
-一个使用 Whisper 模型将视频/音频转换为文字的 Web 应用。
+一个基于 Cloudflare Worker 的音视频转文字应用，支持英文音频转录和中文翻译。
 
-## 技术栈
+## 技术架构
 
-- Next.js 15.1.4
-- React
-- TypeScript
-- Gradio Client
+### 前端 (Next.js + TypeScript)
+- 使用 Next.js 13+ App Router
+- TypeScript 类型安全
+- Tailwind CSS 样式
+- 实时状态管理和进度显示
 
-## 本地开发
+### 后端 (Cloudflare Worker)
+- 处理音频转录和文本翻译
+- 支持多种音频格式
+- 错误处理和日志记录
+- CORS 和缓存控制
 
-```bash
-# 安装依赖
-npm install
+### API 集成
+1. Whisper API (音频转录)
+   - 模型：openai/whisper-large-v3
+   - 支持格式：MP3, MP4, WAV, M4A
 
-# 启动开发服务器
-npm run dev
+2. Silicon Flow API (中文翻译)
+   - 模型：Qwen/Qwen2-VL-72B-Instruct
+   - 参数优化：temperature=0.2, top_p=0.9
 
-# 构建生产版本
-npm run build
-```
+## 实现细节
 
-## 部署说明
+### 1. 音频处理流程
+```javascript
+// 1. 文件类型检测
+const fileExtension = file.name.split('.').pop()?.toLowerCase();
+let contentType = 'audio/mpeg';  // 默认类型
 
-### Cloudflare Pages 部署配置
-
-1. 构建命令：`npm run build`
-2. 输出目录：`.next`
-3. Node.js 版本：20.x
-4. 环境变量：
-   - `HF_TOKEN`: Hugging Face API 密钥
-
-### 已知问题及解决方案
-
-1. TypeScript 类型错误
-
-```
-Type error: Parameter 'context' implicitly has an 'any' type
-```
-
-解决方案：
-在 Worker 函数中添加正确的类型定义：
-```typescript
-export interface Env {
-  HF_TOKEN: string;
+switch (fileExtension) {
+  case 'mp4': contentType = 'audio/mp4'; break;
+  case 'mp3': contentType = 'audio/mpeg'; break;
+  case 'wav': contentType = 'audio/wav'; break;
+  case 'm4a': contentType = 'audio/mp4'; break;
 }
 
-export async function onRequest(
-  context: { request: Request; env: Env }
-) {
-  // ...
-}
-```
+// 2. 二进制数据处理
+const audioData = await file.arrayBuffer();
 
-2. Gradio Client 构建错误
-
-```
-Module build failed: UnhandledSchemeError: Reading from "node:buffer" is not handled by plugins
-Module not found: Can't resolve 'net'
-Module not found: Can't resolve 'tls'
-```
-
-解决方案：
-
-a) 使用原生 fetch API 替代 Gradio Client：
-```typescript
-const response = await fetch('API_ENDPOINT', {
-  method: 'POST',
-  body: formData
-});
-```
-
-b) 或添加 Node.js 兼容性标志：
-1. 创建 `.cloudflare/pages.json` 文件
-2. 添加以下内容：
-```json
-{
-  "functions": {
-    "compatibility_flags": ["nodejs_compat"]
-  }
-}
-```
-
-3. Tailwind CSS 警告
-
-```
-warn - No utility classes were detected in your source files
-```
-
-解决方案：
-- 检查 `tailwind.config.js` 中的 content 配置
-- 确保包含了所有使用 Tailwind 类的文件路径
-
-## API 文档
-
-### Whisper 语音转文字 API
-
-接口说明：
-- 端点：`https://api-inference.huggingface.co/models/openai/whisper-large-v3`
-- 方法：POST
-- 请求头：
-  - `Authorization`: `Bearer ${HF_TOKEN}`
-- 参数：音频文件（支持多种格式）
-
-使用示例：
-```typescript
+// 3. API 调用
 const response = await fetch(
   'https://api-inference.huggingface.co/models/openai/whisper-large-v3',
   {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${env.HF_TOKEN}`
+      'Authorization': `Bearer ${env.HF_TOKEN}`,
+      'Content-Type': contentType
     },
-    body: audioFile
+    body: audioData
   }
 );
 ```
 
-## 贡献指南
+### 2. 文本处理流程
+```javascript
+// 1. 英文文本验证
+const isEnglish = /^[A-Za-z\s\d.,!?'"()-]+$/.test(englishText.trim());
 
-1. Fork 本仓库
-2. 创建功能分支
-3. 提交更改
-4. 发起 Pull Request
+// 2. 句子分割
+const sentences = englishText
+  .split(/(?<=[.!?])\s+/)
+  .filter(s => s.trim())
+  .map((text, index) => ({
+    id: index + 1,
+    original: text,
+    translation: null
+  }));
+```
 
-## 许可证
+### 3. 翻译流程
+```javascript
+// 1. 翻译请求配置
+const translatePayload = {
+  model: 'Qwen/Qwen2-VL-72B-Instruct',
+  messages: [
+    {
+      role: 'system',
+      content: [{
+        type: 'text',
+        text: '翻译规则...'
+      }]
+    },
+    {
+      role: 'user',
+      content: [{ type: 'text', text: text }]
+    }
+  ],
+  temperature: 0.2,
+  top_p: 0.9,
+  max_tokens: 1024,
+  frequency_penalty: 0.5
+};
 
-MIT
+// 2. 逐句翻译
+for (const sentence of sentences) {
+  const result = await translate(sentence);
+  // 添加延迟避免 API 限制
+  await new Promise(resolve => setTimeout(resolve, 1000));
+}
+```
+
+## 错误处理
+
+### 1. 文件验证
+- 检查文件是否存在
+- 验证文件类型
+- 记录文件大小和名称
+
+### 2. API 错误处理
+```javascript
+if (!response.ok) {
+  throw new Error(`API 错误: ${response.status}`);
+}
+
+// 详细错误信息
+return new Response(JSON.stringify({ 
+  error: error.message,
+  timestamp: new Date().toISOString(),
+  details: {
+    fileName: file?.name,
+    fileSize: file?.size,
+    stack: error.stack
+  }
+}), { status: 500 });
+```
+
+### 3. 翻译验证
+- 检查翻译结果是否为空
+- 验证翻译格式
+- 记录 Token 使用情况
+
+## 性能优化
+
+1. **缓存控制**
+   ```javascript
+   headers: {
+     'Cache-Control': 'no-cache'
+   }
+   ```
+
+2. **并发控制**
+   - 使用延迟避免 API 限制
+   - 单句翻译失败不影响整体
+
+3. **状态管理**
+   - 实时更新翻译进度
+   - 显示处理信息
+   - Token 使用统计
+
+## 环境配置
+
+### 1. Worker 环境变量
+```bash
+# Hugging Face API Token
+wrangler secret put HF_TOKEN
+
+# Silicon Flow API Token
+wrangler secret put SF_TOKEN
+```
+
+### 2. 开发环境
+```bash
+# 安装依赖
+npm install
+
+# 开发模式
+npm run dev
+
+# 部署 Worker
+npx wrangler deploy worker.js
+```
+
+## 使用限制
+
+1. **文件大小**
+   - 建议不超过 25MB
+   - 支持常见音频格式
+
+2. **API 限制**
+   - Whisper API: 根据账户额度
+   - Silicon Flow API: 需要控制请求频率
+
+3. **翻译质量**
+   - 仅支持英文到中文
+   - 专业术语可能需要人工校对
+
+## 后续优化
+
+1. **功能增强**
+   - [ ] 支持更多音频格式
+   - [ ] 添加字幕导出功能
+   - [ ] 支持更多语言对
+
+2. **性能优化**
+   - [ ] 添加文件压缩
+   - [ ] 实现并发翻译
+   - [ ] 优化错误重试机制
+
+3. **用户体验**
+   - [ ] 添加进度条
+   - [ ] 支持翻译编辑
+   - [ ] 添加历史记录
