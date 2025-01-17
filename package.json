@@ -2,39 +2,27 @@
   "name": "video-to-text",
   "version": "0.1.0",
   "private": true,
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "pages:build": "npx @cloudflare/next-on-pages",
-    "pages:deploy": "npm run pages:build && wrangler pages deploy .vercel/output/static",
-    "pages:watch": "npx @cloudflare/next-on-pages --watch",
-    "worker:dev": "wrangler dev",
-    "worker:deploy": "wrangler deploy"
+    "lint": "next lint"
   },
   "dependencies": {
-    "@ant-design/icons": "5.5.2",
-    "@types/react": "19.0.7",
-    "@types/react-dom": "19.0.3",
-    "react": "^18",
-    "react-dom": "^18",
+    "@gradio/client": "^0.12.1",
     "next": "14.1.0",
-    "@gradio/client": "^1.10.0"
+    "react": "^18",
+    "react-dom": "^18"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.8.5",
-    "@cloudflare/workers-types": "^4.20240117.0",
-    "@types/node": "18.19.71",
-    "autoprefixer": "^10.4.16",
-    "eslint": "^8.56.0",
-    "eslint-config-next": "13.5.6",
-    "postcss": "^8.4.32",
-    "tailwindcss": "^3.4.0",
-    "typescript": "^5.0.0",
-    "wrangler": "^3.25.0"
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.0.1",
+    "eslint": "^8",
+    "eslint-config-next": "14.1.0",
+    "postcss": "^8",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5"
   }
 }
