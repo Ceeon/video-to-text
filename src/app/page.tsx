@@ -27,15 +27,12 @@ export default function Home() {
 
       // 创建FormData对象
       const formData = new FormData();
-      formData.append('data', selectedFile);
+      formData.append('file', selectedFile);
 
-      // 直接调用Hugging Face空间的API
-      const response = await fetch('https://ce-creater-whisper.hf.space/run/predict', {
+      // 调用我们的API端点
+      const response = await fetch('/api/transcribe', {
         method: 'POST',
-        body: formData,
-        headers: {
-          'Accept': 'application/json',
-        }
+        body: formData
       });
 
       if (!response.ok) {
@@ -45,8 +42,10 @@ export default function Home() {
       const data = await response.json();
       console.log('API Response:', data);
 
-      if (data && data.data && data.data[0]) {
-        setResult(data.data[0]);
+      if (data.data) {
+        setResult(data.data);
+      } else if (data.error) {
+        setResult(data.error);
       } else {
         setResult('无法识别文件内容');
       }
