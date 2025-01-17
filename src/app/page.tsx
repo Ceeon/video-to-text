@@ -36,16 +36,20 @@ export default function Home() {
       });
 
       // 构造请求数据
-      const response = await fetch('https://ce-creater-whisper.hf.space/run/predict', {
+      const response = await fetch('https://ce-creater-whisper.hf.space/api/predict', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          data: [base64],
-          fn_index: 0,
-          session_hash: Math.random().toString(36).substring(7)
+          data: [
+            {
+              name: selectedFile.name,
+              data: base64,
+              type: selectedFile.type
+            }
+          ]
         })
       });
 
