@@ -34,7 +34,7 @@ export default function Home() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      console.log('选择的文件:', file.name);
+      console.log('Selected file:', file.name);
       setSelectedFile(file);
       setSentences([]);
       setMetadata(null);
@@ -58,7 +58,7 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error(`翻译失败: ${response.status}`);
+        throw new Error(`Translation failed: ${response.status}`);
       }
 
       const result: TranslateResponse = await response.json();
@@ -76,33 +76,33 @@ export default function Home() {
 
       return true;
     } catch (error) {
-      console.error('翻译句子失败:', error);
+      console.error('Failed to translate sentence:', error);
       return false;
     }
   };
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      setError('请先选择文件');
+      setError('Please select a file first');
       return;
     }
 
     setLoading(true);
     setError('');
-    console.log('开始上传文件:', selectedFile.name, 'size:', selectedFile.size);
+    console.log('Starting file upload:', selectedFile.name, 'size:', selectedFile.size);
 
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      console.log('发送转录请求...');
+      console.log('Sending transcription request...');
       const response = await fetch('https://royal-queen-2868.zhongce-xie.workers.dev/transcribe', {
         method: 'POST',
         body: formData,
       });
 
       const responseText = await response.text();
-      console.log('服务器响应:', response.status, responseText);
+      console.log('Server response:', response.status, responseText);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}, response: ${responseText}`);
@@ -112,37 +112,37 @@ export default function Home() {
       try {
         data = JSON.parse(responseText);
       } catch (e) {
-        console.error('JSON 解析错误:', e);
-        throw new Error('服务器返回的数据格式无效');
+        console.error('JSON parsing error:', e);
+        throw new Error('Invalid server response format');
       }
       
       if (data.sentences && data.sentences.length > 0) {
-        console.log('转录成功，开始翻译...');
+        console.log('Transcription successful, starting translation...');
         setSentences(data.sentences);
         setMetadata({
           totalSentences: data.metadata.totalSentences,
           totalTokens: 0,
         });
 
-        // 开始逐句翻译
+        // Start sentence-by-sentence translation
         setTranslating(true);
         for (const sentence of data.sentences) {
-          console.log(`翻译第 ${sentence.id} 句:`, sentence.original);
+          console.log(`Translating sentence ${sentence.id}:`, sentence.original);
           const success = await translateSentence(sentence);
           if (!success) {
-            setError('部分句子翻译失败，请重试');
+            setError('Some sentences failed to translate, please retry');
             break;
           }
-          // 添加延迟以避免 API 限制
+          // Add delay to avoid API limits
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
         setTranslating(false);
       } else {
-        throw new Error('未获取到有效的转录结果');
+        throw new Error('No valid transcription results received');
       }
     } catch (error) {
-      console.error('处理失败:', error);
-      setError(error instanceof Error ? error.message : '处理文件时出错');
+      console.error('Processing failed:', error);
+      setError(error instanceof Error ? error.message : 'Error processing file');
       setSentences([]);
       setMetadata(null);
     } finally {
@@ -154,7 +154,7 @@ export default function Home() {
 
   return (
     <main className="p-4 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">音视频转文字</h1>
+      <h1 className="text-2xl font-bold mb-4">Audio/Video to Text</h1>
       <div className="space-y-6">
         <div className="flex gap-4 items-center">
           <input
@@ -162,7 +162,7 @@ export default function Home() {
             ref={fileInputRef}
             onChange={handleFileChange}
             accept="audio/*,video/*"
-            aria-label="选择音频或视频文件"
+            aria-label="Select audio or video file"
             className="border p-2 rounded"
           />
           <button 
@@ -170,7 +170,7 @@ export default function Home() {
             disabled={!selectedFile || loading}
             className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300 hover:bg-blue-600 transition-colors"
           >
-            {loading ? '转录中...' : '转换'}
+            {loading ? 'Processing...' : 'Convert'}
           </button>
         </div>
 
@@ -182,12 +182,12 @@ export default function Home() {
 
         {metadata && (
           <div className="p-4 bg-gray-50 border rounded">
-            <h2 className="font-semibold mb-2">处理信息</h2>
-            <p>总句数: {metadata.totalSentences}</p>
-            <p>Token 使用: {metadata.totalTokens}</p>
+            <h2 className="font-semibold mb-2">Processing Information</h2>
+            <p>Total Sentences: {metadata.totalSentences}</p>
+            <p>Token Usage: {metadata.totalTokens}</p>
             {translating && (
               <p className="text-blue-600">
-                正在翻译第 {currentTranslationIndex} 句，共 {metadata.totalSentences} 句
+                Translating sentence {currentTranslationIndex} of {metadata.totalSentences}
               </p>
             )}
           </div>
@@ -197,7 +197,7 @@ export default function Home() {
           <div className="border rounded overflow-hidden">
             <div className="grid grid-cols-2 divide-x">
               <div className="p-4 bg-gray-50">
-                <h2 className="font-semibold mb-4">原文</h2>
+                <h2 className="font-semibold mb-4">Original Text</h2>
                 <div className="space-y-4">
                   {sentences.map((sentence) => (
                     <div 
@@ -212,7 +212,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="p-4 bg-blue-50">
-                <h2 className="font-semibold mb-4">中文翻译</h2>
+                <h2 className="font-semibold mb-4">Chinese Translation</h2>
                 <div className="space-y-4">
                   {sentences.map((sentence) => (
                     <div 
@@ -223,7 +223,7 @@ export default function Home() {
                     >
                       {sentence.translation || (
                         <span className="text-gray-400">
-                          {currentTranslationIndex >= sentence.id ? '翻译中...' : '等待翻译'}
+                          {currentTranslationIndex >= sentence.id ? 'Translating...' : 'Waiting for translation'}
                         </span>
                       )}
                     </div>
