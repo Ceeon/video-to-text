@@ -1,5 +1,3 @@
-import { client } from '@gradio/client';
-
 export interface Env {
   HF_TOKEN: string;
 }
@@ -29,10 +27,25 @@ export async function onRequest(
       });
     }
 
-    const app = await client("Ce-creater/whisper");
-    const result = await app.predict(0, [file]);
+    // 调用 Hugging Face API
+    const response = await fetch(
+      'https://api-inference.huggingface.co/models/openai/whisper-large-v3',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${context.env.HF_TOKEN}`
+        },
+        body: file
+      }
+    );
 
-    return new Response(JSON.stringify({ data: result.data }), {
+    if (!response.ok) {
+      throw new Error(`API 请求失败: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    return new Response(JSON.stringify(result), {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
