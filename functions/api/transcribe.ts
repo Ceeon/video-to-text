@@ -1,35 +1,45 @@
 import { client } from '@gradio/client';
 
-export async function onRequest(context: any) {
+export async function onRequest(context) {
+  // 处理 CORS
+  if (context.request.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+    });
+  }
+
   try {
     const formData = await context.request.formData();
     const file = formData.get('file');
     
     if (!file) {
-      return new Response(
-        JSON.stringify({ error: 'No file provided' }), 
-        { status: 400 }
-      );
+      return new Response(JSON.stringify({ error: '未找到文件' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    // 创建 Gradio 客户端
     const app = await client("Ce-creater/whisper");
-    
-    // 调用预测
     const result = await app.predict(0, [file]);
 
-    return new Response(
-      JSON.stringify(result),
-      { 
-        headers: { 'Content-Type': 'application/json' },
-        status: 200 
-      }
-    );
+    return new Response(JSON.stringify({ data: result.data }), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
   } catch (error) {
-    console.error('Transcription error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Failed to transcribe file' }),
-      { status: 500 }
-    );
+    console.error('转录失败:', error);
+    return new Response(JSON.stringify({ error: '转录失败' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
   }
 } 
