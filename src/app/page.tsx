@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { client } from '@gradio/client';
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -26,19 +25,28 @@ export default function Home() {
     try {
       setLoading(true);
 
-      // 直接使用File对象，它已经是Blob的子类
-      const fileBlob = selectedFile;
-      
-      // 创建app实例
-      const app = await client("Ce-creater/whisper");
-      console.log('Sending file:', fileBlob);
-      
-      // 使用fn_index 0
-      const result = await app.predict(0, [fileBlob]);
-      console.log('API Response:', result);
+      // 创建FormData对象
+      const formData = new FormData();
+      formData.append('data', selectedFile);
 
-      if (result && result.data && result.data[0]) {
-        setResult(result.data[0]);
+      // 直接调用Hugging Face空间的API
+      const response = await fetch('https://ce-creater-whisper.hf.space/run/predict', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('API Response:', data);
+
+      if (data && data.data && data.data[0]) {
+        setResult(data.data[0]);
       } else {
         setResult('无法识别文件内容');
       }
