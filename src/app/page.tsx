@@ -25,9 +25,9 @@ export default function Home() {
 
     try {
       setLoading(true);
-      const app = await client("ysharma-whisper-jax");
-      const result = await app.predict("/predict", [
-        selectedFile,
+      const app = await client("Ce-creater/whisper");
+      const result = await app.predict(0, [
+        selectedFile, // blob in '上传音频' Audio component
       ]);
       
       if (Array.isArray(result.data) && result.data.length > 0) {
