@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Video to Text
 
-## Getting Started
+一个使用 Whisper 模型将视频/音频转换为文字的 Web 应用。
 
-First, run the development server:
+## 技术栈
+
+- Next.js 15.1.4
+- React
+- TypeScript
+- Gradio Client
+
+## 本地开发
 
 ```bash
+# 安装依赖
+npm install
+
+# 启动开发服务器
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# 构建生产版本
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 部署说明
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Cloudflare Pages 部署配置
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+1. 构建命令：`npm run build`
+2. 输出目录：`.next`
+3. Node.js 版本：20.x
 
-## Learn More
+### 已知问题及解决方案
 
-To learn more about Next.js, take a look at the following resources:
+1. Gradio Client 构建错误
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+Module build failed: UnhandledSchemeError: Reading from "node:buffer" is not handled by plugins
+Module not found: Can't resolve 'net'
+Module not found: Can't resolve 'tls'
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+解决方案：
 
-## Deploy on Vercel
+a) 使用原生 fetch API 替代 Gradio Client：
+```typescript
+const response = await fetch('API_ENDPOINT', {
+  method: 'POST',
+  body: formData
+});
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+b) 或添加 Node.js 兼容性标志：
+1. 创建 `.cloudflare/pages.json` 文件
+2. 添加以下内容：
+```json
+{
+  "functions": {
+    "compatibility_flags": ["nodejs_compat"]
+  }
+}
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+2. Tailwind CSS 警告
+
+```
+warn - No utility classes were detected in your source files
+```
+
+解决方案：
+- 检查 `tailwind.config.js` 中的 content 配置
+- 确保包含了所有使用 Tailwind 类的文件路径
+
+## API 文档
+
+### Whisper 语音转文字 API
+
+接口说明：
+- 端点：`Ce-creater/whisper`
+- 方法：POST
+- 参数：音频文件（支持多种格式）
+
+使用示例：
+```typescript
+const app = await client("Ce-creater/whisper");
+const result = await app.predict("/predict", [audioFile]);
+```
+
+## 贡献指南
+
+1. Fork 本仓库
+2. 创建功能分支
+3. 提交更改
+4. 发起 Pull Request
+
+## 许可证
+
+MIT
