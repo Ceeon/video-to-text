@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { client } from '@gradio/client';
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -25,31 +24,30 @@ export default function Home() {
 
     try {
       setLoading(true);
-      console.log('开始处理文件:', selectedFile.name);
 
-      // 创建 Gradio 客户端
-      const app = await client("Ce-creater/whisper");
-      console.log('Gradio 客户端创建成功');
+      // 构造表单数据
+      const formData = new FormData();
+      formData.append('file', selectedFile);
 
-      // 将文件转换为 blob
-      const fileBlob = new Blob([await selectedFile.arrayBuffer()], { type: selectedFile.type });
-      
-      // 调用预测 API
-      console.log('开始调用预测');
-      const result = await app.predict(0, [
-        fileBlob, // blob 格式的文件
-      ]);
-      console.log('预测结果:', result);
+      // 发送到我们的 API 路由
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData
+      });
 
-      if (result && result.data && result.data[0]) {
-        setResult(result.data[0]);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data && data.data && data.data[0]) {
+        setResult(data.data[0]);
       } else {
-        console.error('无效的结果格式:', result);
         setResult('无法识别文件内容');
       }
     } catch (error) {
-      console.error('处理错误:', error);
-      setResult(`处理文件时出错: ${error.message}`);
+      console.error('Error:', error);
+      setResult('处理文件时出错，请稍后重试');
     } finally {
       setLoading(false);
     }
