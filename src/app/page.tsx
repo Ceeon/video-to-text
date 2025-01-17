@@ -27,13 +27,19 @@ export default function Home() {
 
       // 创建FormData对象
       const formData = new FormData();
-      formData.append('file', selectedFile);
+      formData.append('audio', selectedFile);
 
-      // 调用我们的API端点
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData
-      });
+      // 调用 Hugging Face Inference API
+      const response = await fetch(
+        'https://api-inference.huggingface.co/models/openai/whisper-large-v3',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_HF_TOKEN}`,
+          },
+          body: formData
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -42,10 +48,8 @@ export default function Home() {
       const data = await response.json();
       console.log('API Response:', data);
 
-      if (data.data) {
-        setResult(data.data);
-      } else if (data.error) {
-        setResult(data.error);
+      if (data.text) {
+        setResult(data.text);
       } else {
         setResult('无法识别文件内容');
       }
