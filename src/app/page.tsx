@@ -25,14 +25,22 @@ export default function Home() {
     try {
       setLoading(true);
       const formData = new FormData();
-      formData.append('file', selectedFile);
+      formData.append('audio', selectedFile);
 
-      const response = await fetch('https://ce-creater-whisper.hf.space/api/predict', {
+      const response = await fetch('https://ce-creater-whisper.hf.space/run/predict', {
         method: 'POST',
         headers: {
-          'Accept': 'application/json',
+          'Content-Type': 'multipart/form-data',
         },
-        body: formData
+        body: JSON.stringify({
+          data: [
+            await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.readAsDataURL(selectedFile);
+            })
+          ]
+        })
       });
 
       if (!response.ok) {
@@ -40,7 +48,7 @@ export default function Home() {
       }
 
       const data = await response.json();
-      if (data && Array.isArray(data.data) && data.data.length > 0) {
+      if (data && data.data && data.data[0]) {
         setResult(data.data[0]);
       } else {
         setResult('无法识别文件内容');
