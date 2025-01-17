@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import { client } from '@gradio/client';
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -26,27 +27,24 @@ export default function Home() {
       setLoading(true);
       console.log('开始处理文件:', selectedFile.name);
 
-      // 将文件转换为 FormData
-      const formData = new FormData();
-      formData.append('file', selectedFile);
+      // 创建 Gradio 客户端
+      const app = await client("Ce-creater/whisper");
+      console.log('Gradio 客户端创建成功');
 
-      // 发送请求到 Hugging Face Space
-      const response = await fetch('https://ce-creater-whisper.hf.space/run/predict', {
-        method: 'POST',
-        body: formData
-      });
+      // 将文件转换为 blob
+      const fileBlob = new Blob([await selectedFile.arrayBuffer()], { type: selectedFile.type });
+      
+      // 调用预测 API
+      console.log('开始调用预测');
+      const result = await app.predict(0, [
+        fileBlob, // blob 格式的文件
+      ]);
+      console.log('预测结果:', result);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('API 响应:', data);
-
-      if (data && data.data && data.data[0]) {
-        setResult(data.data[0]);
+      if (result && result.data && result.data[0]) {
+        setResult(result.data[0]);
       } else {
-        console.error('无效的响应格式:', data);
+        console.error('无效的结果格式:', result);
         setResult('无法识别文件内容');
       }
     } catch (error) {
