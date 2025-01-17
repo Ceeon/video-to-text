@@ -25,10 +25,13 @@ export default function Home() {
     try {
       setLoading(true);
       const formData = new FormData();
-      formData.append('data', selectedFile);
+      formData.append('file', selectedFile);
 
-      const response = await fetch('https://ce-creater-whisper.hf.space/run/predict', {
+      const response = await fetch('https://ce-creater-whisper.hf.space/api/predict', {
         method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+        },
         body: formData
       });
 
@@ -37,7 +40,7 @@ export default function Home() {
       }
 
       const data = await response.json();
-      if (data && data.data && data.data[0]) {
+      if (data && Array.isArray(data.data) && data.data.length > 0) {
         setResult(data.data[0]);
       } else {
         setResult('无法识别文件内容');
