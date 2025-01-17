@@ -53,7 +53,12 @@ export default {
 
       console.log('转录文本:', englishText);
 
-      // 调用硅基流动 API 进行翻译
+      // 分割英文句子
+      const englishSentences = englishText
+        .split(/(?<=[.!?])\s+/)
+        .filter(s => s.trim());
+
+      // 构建翻译请求
       const translatePayload = {
         model: 'Qwen/Qwen2-VL-72B-Instruct',
         messages: [
@@ -61,14 +66,19 @@ export default {
             role: 'system',
             content: [{
               type: 'text',
-              text: '你是一个专业的翻译助手。请将以下英文文本翻译成中文，保持原文的语气和风格，确保翻译准确、自然。如果遇到专业术语，请使用对应的标准中文翻译。'
+              text: `你是一个专业的翻译助手。请将以下英文文本翻译成中文，遵循以下规则：
+1. 保持原文的语气和风格
+2. 确保翻译准确、自然
+3. 专业术语使用标准中文翻译
+4. 保持句子的一一对应关系
+5. 每个句子单独成行，用 "===" 分隔英文和中文`
             }]
           },
           {
             role: 'user',
             content: [{
               type: 'text',
-              text: `请将以下文本翻译成中文：\n\n${englishText}`
+              text: englishSentences.map(s => `${s}\n=== `).join('\n\n')
             }]
           }
         ],
@@ -98,18 +108,33 @@ export default {
         throw new Error(`翻译失败: ${translateResponse.status} - ${JSON.stringify(translateResult)}`);
       }
 
-      const chineseText = translateResult.choices?.[0]?.message?.content;
-      if (!chineseText) {
+      // 处理翻译结果
+      const translationText = translateResult.choices?.[0]?.message?.content;
+      if (!translationText) {
         throw new Error('翻译结果为空');
       }
 
-      console.log('翻译文本:', chineseText);
+      // 解析翻译结果
+      const translationPairs = translationText
+        .split('\n\n')
+        .filter(pair => pair.includes('==='))
+        .map(pair => {
+          const [en, zh] = pair.split('===').map(s => s.trim());
+          return { original: en, translation: zh };
+        });
 
-      // 返回转录和翻译结果
+      // 验证结果
+      if (translationPairs.length === 0) {
+        throw new Error('翻译结果解析失败');
+      }
+
+      // 返回对齐的结果
       const response = {
-        original: englishText,
-        translation: chineseText,
-        usage: translateResult.usage
+        sentences: translationPairs,
+        metadata: {
+          totalSentences: translationPairs.length,
+          usage: translateResult.usage
+        }
       };
 
       console.log('返回结果:', JSON.stringify(response));
