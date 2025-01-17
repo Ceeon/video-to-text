@@ -89,25 +89,35 @@ export default function Home() {
 
     setLoading(true);
     setError('');
-    console.log('开始上传文件...');
+    console.log('开始上传文件:', selectedFile.name, 'size:', selectedFile.size);
 
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
+      console.log('发送转录请求...');
       const response = await fetch('https://royal-queen-2868.zhongce-xie.workers.dev/transcribe', {
         method: 'POST',
         body: formData,
       });
 
+      const responseText = await response.text();
+      console.log('服务器响应:', response.status, responseText);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}, response: ${responseText}`);
       }
 
-      const data: TranscribeResponse = await response.json();
-      console.log('转录结果:', data);
+      let data: TranscribeResponse;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('JSON 解析错误:', e);
+        throw new Error('服务器返回的数据格式无效');
+      }
       
       if (data.sentences && data.sentences.length > 0) {
+        console.log('转录成功，开始翻译...');
         setSentences(data.sentences);
         setMetadata({
           totalSentences: data.metadata.totalSentences,
@@ -117,6 +127,7 @@ export default function Home() {
         // 开始逐句翻译
         setTranslating(true);
         for (const sentence of data.sentences) {
+          console.log(`翻译第 ${sentence.id} 句:`, sentence.original);
           const success = await translateSentence(sentence);
           if (!success) {
             setError('部分句子翻译失败，请重试');
