@@ -25,13 +25,13 @@ export default function Home() {
 
     try {
       setLoading(true);
-      const app = await client("https://ce-creater-whisper.hf.space/");
-      const result = await app.predict(1, [
-        selectedFile,  // 上传音频文件
+      const app = await client("ysharma-whisper-jax");
+      const result = await app.predict("/predict", [
+        selectedFile,
       ]);
       
-      if (result?.data) {
-        setResult(result.data);
+      if (Array.isArray(result.data) && result.data.length > 0) {
+        setResult(result.data[0]);
       } else {
         setResult('无法识别文件内容');
       }
