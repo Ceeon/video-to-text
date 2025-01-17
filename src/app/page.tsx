@@ -11,42 +11,39 @@ export default function Home() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      console.log('选择的文件:', file.name);
       setSelectedFile(file);
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      console.log('请先选择文件');
+      return;
+    }
+
+    setLoading(true);
+    console.log('开始上传文件...');
 
     try {
-      setLoading(true);
-      console.log('开始处理文件:', selectedFile.name);
-      
-      // 创建 FormData
       const formData = new FormData();
       formData.append('file', selectedFile);
-      
-      // 调用 API
-      const response = await fetch('https://ce-creater-whisper.hf.space/run/predict', {
+
+      const response = await fetch('https://royal-queen-2868.zhongce-xie.workers.dev', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      console.log('API 调用结果:', data);
-      
-      if (data && data.data && data.data[0]) {
-        setResult(data.data[0]);
-      } else {
-        setResult('无法识别文件内容');
-      }
+      console.log('转录结果:', data);
+      setResult(data.text || '转录失败');
     } catch (error) {
-      console.error('处理出错:', error);
-      setResult('处理文件时出错，请稍后重试');
+      console.error('上传错误:', error);
+      setResult('处理文件时出错');
     } finally {
       setLoading(false);
     }
@@ -60,24 +57,15 @@ export default function Home() {
           ref={fileInputRef}
           onChange={handleFileChange}
           accept="audio/*,video/*"
-          style={{ display: 'none' }}
           aria-label="选择音频或视频文件"
         />
-        <button onClick={() => fileInputRef.current?.click()}>
-          选择文件
+        <button onClick={handleUpload} disabled={!selectedFile || loading}>
+          {loading ? '处理中...' : '转换'}
         </button>
-        {selectedFile && (
-          <>
-            <span>{selectedFile.name}</span>
-            <button onClick={handleUpload} disabled={loading}>
-              {loading ? '处理中...' : '转换'}
-            </button>
-          </>
-        )}
       </div>
       {result && (
         <div role="alert">
-          <h3>转换结果：</h3>
+          <h3>转录结果:</h3>
           <p>{result}</p>
         </div>
       )}

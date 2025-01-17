@@ -1,8 +1,8 @@
-name = "video-to-text"
+name = "royal-queen-2868"
+main = "worker.js"
 compatibility_date = "2024-01-17"
+compatibility_flags = ["nodejs_compat"]
 
-main = "src/workers/transcribe.ts"
-
-[[routes]]
-pattern = "/api/transcribe"
-script = "src/workers/transcribe.ts" 
+[vars]
+# 在 Cloudflare Dashboard 中设置
+# HF_TOKEN = "你的 Hugging Face API Token" 
