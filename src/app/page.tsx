@@ -36,21 +36,13 @@ export default function Home() {
       });
 
       // 构造请求数据
-      const response = await fetch('https://ce-creater-whisper.hf.space/api/predict', {
+      const response = await fetch('https://api-inference.huggingface.co/models/Ce-creater/whisper', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'audio/wav',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({
-          data: [
-            {
-              name: selectedFile.name,
-              data: base64,
-              type: selectedFile.type
-            }
-          ]
-        })
+        body: selectedFile // 直接发送文件
       });
 
       if (!response.ok) {
