@@ -40,6 +40,9 @@ async function handleTranscribe(request, env) {
 
     console.log('开始处理文件:', file.name, 'size:', file.size);
 
+    // 获取文件的二进制数据
+    const audioData = await file.arrayBuffer();
+
     // 调用 Whisper API 进行音频转录
     const transcribeResponse = await fetch(
       'https://api-inference.huggingface.co/models/openai/whisper-large-v3',
@@ -47,16 +50,9 @@ async function handleTranscribe(request, env) {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${env.HF_TOKEN}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'audio/mp4'  // 根据实际文件类型设置
         },
-        body: JSON.stringify({
-          data: await file.arrayBuffer(),
-          parameters: {
-            task: "transcribe",
-            language: "en",
-            return_timestamps: false
-          }
-        })
+        body: audioData  // 直接发送二进制数据
       }
     );
 
