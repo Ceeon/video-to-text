@@ -157,14 +157,19 @@ export default function Home() {
       <h1 className="text-2xl font-bold mb-4">Audio/Video to Text</h1>
       <div className="space-y-6">
         <div className="flex gap-4 items-center">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="audio/*,video/*"
-            aria-label="Select audio or video file"
-            className="border p-2 rounded"
-          />
+          <label className="relative cursor-pointer">
+            <span className="inline-block px-4 py-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors">
+              {selectedFile ? selectedFile.name : 'Choose File'}
+            </span>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="audio/*,video/*"
+              aria-label="Select audio or video file"
+              className="hidden"
+            />
+          </label>
           <button 
             onClick={handleUpload} 
             disabled={!selectedFile || loading}
