@@ -27,23 +27,17 @@ export async function onRequest(
       });
     }
 
-    // 调用 Hugging Face API
-    const response = await fetch(
-      'https://api-inference.huggingface.co/models/openai/whisper-large-v3',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${context.env.HF_TOKEN}`
-        },
-        body: file
-      }
-    );
+    // 调用 Worker API
+    const workerResponse = await fetch('https://royal-queen-2868.zhongce-xie.workers.dev', {
+      method: 'POST',
+      body: formData,
+    });
 
-    if (!response.ok) {
-      throw new Error(`API 请求失败: ${response.status}`);
+    if (!workerResponse.ok) {
+      throw new Error(`Worker API 请求失败: ${workerResponse.status}`);
     }
 
-    const result = await response.json();
+    const result = await workerResponse.json();
 
     return new Response(JSON.stringify(result), {
       headers: {
@@ -52,8 +46,8 @@ export async function onRequest(
       },
     });
   } catch (error) {
-    console.error('转录失败:', error);
-    return new Response(JSON.stringify({ error: '转录失败' }), {
+    console.error('处理请求失败:', error);
+    return new Response(JSON.stringify({ error: '处理请求失败' }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
