@@ -25,23 +25,28 @@ export default function Home() {
 
     try {
       setLoading(true);
+      console.log('开始处理文件:', selectedFile.name);
 
-      // 创建 Gradio 客户端
-      const app = await client("Ce-creater/whisper");
+      // 创建 Gradio 客户端，使用完整的 Space URL
+      const app = await client("https://huggingface.co/spaces/Ce-creater/whisper");
+      console.log('Gradio 客户端创建成功');
       
       // 使用 fn_index 0 调用预测
+      console.log('开始调用预测');
       const result = await app.predict(0, [
         selectedFile, // 直接传递文件对象
       ]);
+      console.log('预测结果:', result);
 
       if (result && result.data && result.data[0]) {
         setResult(result.data[0]);
       } else {
+        console.error('无效的结果格式:', result);
         setResult('无法识别文件内容');
       }
     } catch (error) {
-      console.error('Error:', error);
-      setResult('处理文件时出错，请稍后重试');
+      console.error('处理错误:', error);
+      setResult(`处理文件时出错: ${error.message}`);
     } finally {
       setLoading(false);
     }
