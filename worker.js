@@ -24,8 +24,8 @@ export default {
         return new Response('未找到文件', { status: 400 });
       }
 
-      // 调用 Hugging Face API
-      const response = await fetch(
+      // 调用 Hugging Face API 进行音频转录
+      const transcribeResponse = await fetch(
         'https://api-inference.huggingface.co/models/openai/whisper-large-v3',
         {
           method: 'POST',
@@ -36,13 +36,49 @@ export default {
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`API 请求失败: ${response.status}`);
+      if (!transcribeResponse.ok) {
+        throw new Error(`转录失败: ${transcribeResponse.status}`);
       }
 
-      const result = await response.json();
+      const transcribeResult = await transcribeResponse.json();
+      const englishText = transcribeResult.text || '';
 
-      return new Response(JSON.stringify(result), {
+      // 调用硅基流动 API 进行翻译
+      const translateResponse = await fetch('https://api.siliconflow.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${env.SF_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'Qwen/QVQ-72B-Preview',
+          messages: [
+            {
+              role: 'system',
+              content: [{ type: 'text', text: '你是一个专业的翻译助手，请将以下英文文本翻译成中文，保持原文的语气和风格。' }]
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: englishText }]
+            }
+          ],
+          temperature: 0.3, // 降低随机性，使翻译更准确
+          max_tokens: 2048
+        })
+      });
+
+      if (!translateResponse.ok) {
+        throw new Error(`翻译失败: ${translateResponse.status}`);
+      }
+
+      const translateResult = await translateResponse.json();
+      const chineseText = translateResult.choices[0]?.message?.content || '';
+
+      // 返回转录和翻译结果
+      return new Response(JSON.stringify({
+        original: englishText,
+        translation: chineseText
+      }), {
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/json'
