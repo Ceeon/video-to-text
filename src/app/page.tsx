@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import { client } from '@gradio/client';
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -25,36 +26,16 @@ export default function Home() {
     try {
       setLoading(true);
 
-      // 将文件转换为 base64
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64String = reader.result as string;
-          resolve(base64String.split(',')[1]); // 移除 "data:audio/wav;base64," 前缀
-        };
-        reader.readAsDataURL(selectedFile);
-      });
+      // 创建 Gradio 客户端
+      const app = await client("Ce-creater/whisper");
+      
+      // 使用 fn_index 0 调用预测
+      const result = await app.predict(0, [
+        selectedFile, // 直接传递文件对象
+      ]);
 
-      // 发送请求
-      const response = await fetch('https://ce-creater-whisper.hf.space/run/predict', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fn_index: 0,
-          data: [base64],
-          session_hash: Math.random().toString(36).substring(7)
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data && data.data && data.data[0]) {
-        setResult(data.data[0]);
+      if (result && result.data && result.data[0]) {
+        setResult(result.data[0]);
       } else {
         setResult('无法识别文件内容');
       }
