@@ -152,7 +152,7 @@ async function handleTranslate(request, env) {
 
     // 构建翻译请求
     const translatePayload = {
-      model: 'Qwen/Qwen2-VL-72B-Instruct',
+      model: 'Qwen/QVQ-72B-Preview',
       messages: [
         {
           role: 'system',

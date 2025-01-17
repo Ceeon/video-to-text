@@ -22,7 +22,7 @@
    - 支持格式：MP3, MP4, WAV, M4A
 
 2. Silicon Flow API (中文翻译)
-   - 模型：Qwen/Qwen2-VL-72B-Instruct
+   - 模型：Qwen/QVQ-72B-Preview
    - 参数优化：temperature=0.2, top_p=0.9
 
 ## 实现细节
