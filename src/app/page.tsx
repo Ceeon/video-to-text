@@ -1,29 +1,12 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
-import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg';
-
-const ffmpeg = createFFmpeg({ log: true });
+import React, { useRef, useState } from 'react';
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [result, setResult] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [ffmpegLoaded, setFfmpegLoaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // 初始化 FFmpeg
-  useEffect(() => {
-    const loadFFmpeg = async () => {
-      try {
-        await ffmpeg.load();
-        setFfmpegLoaded(true);
-      } catch (error) {
-        console.error('Failed to load FFmpeg:', error);
-      }
-    };
-    loadFFmpeg();
-  }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -36,45 +19,20 @@ export default function Home() {
     fileInputRef.current?.click();
   };
 
-  const extractAudio = async (file: File): Promise<Uint8Array> => {
-    // 将文件写入 FFmpeg 虚拟文件系统
-    ffmpeg.FS('writeFile', 'input', await fetchFile(file));
-    
-    // 提取音频为 WAV 格式
-    await ffmpeg.run('-i', 'input', '-vn', '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1', 'output.wav');
-    
-    // 读取转换后的音频
-    const data = ffmpeg.FS('readFile', 'output.wav');
-    
-    // 清理文件系统
-    ffmpeg.FS('unlink', 'input');
-    ffmpeg.FS('unlink', 'output.wav');
-    
-    return data;
-  };
-
   const handleUpload = async () => {
-    if (!selectedFile || !ffmpegLoaded) return;
+    if (!selectedFile) return;
 
     try {
       setLoading(true);
-      
-      // 如果是视频文件，先提取音频
-      let audioData;
-      if (selectedFile.type.startsWith('video/')) {
-        audioData = await extractAudio(selectedFile);
-      } else {
-        audioData = new Uint8Array(await selectedFile.arrayBuffer());
-      }
+
+      // 构造表单数据
+      const formData = new FormData();
+      formData.append('data', selectedFile);
 
       // 发送请求
-      const response = await fetch('https://api-inference.huggingface.co/models/Ce-creater/whisper', {
+      const response = await fetch('https://ce-creater-whisper.hf.space/run/predict', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'audio/wav',
-          'Accept': 'application/json'
-        },
-        body: audioData
+        body: formData
       });
 
       if (!response.ok) {
@@ -82,8 +40,8 @@ export default function Home() {
       }
 
       const data = await response.json();
-      if (data && Array.isArray(data) && data[0]?.text) {
-        setResult(data[0].text);
+      if (data && data.data && data.data[0]) {
+        setResult(data.data[0]);
       } else {
         setResult('无法识别文件内容');
       }
@@ -94,10 +52,6 @@ export default function Home() {
       setLoading(false);
     }
   };
-
-  if (!ffmpegLoaded) {
-    return <div>正在加载处理组件...</div>;
-  }
 
   return (
     <main>
