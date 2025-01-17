@@ -26,12 +26,16 @@ export default function Home() {
     try {
       setLoading(true);
 
-      // 将File对象转换为Blob
-      const fileBlob = new Blob([await selectedFile.arrayBuffer()], { type: selectedFile.type });
-
-      // 使用fn_index而不是路径
+      // 直接使用File对象，它已经是Blob的子类
+      const fileBlob = selectedFile;
+      
+      // 创建app实例
       const app = await client("Ce-creater/whisper");
-      const result = await app.predict(1, [fileBlob]);
+      console.log('Sending file:', fileBlob);
+      
+      // 使用fn_index 0
+      const result = await app.predict(0, [fileBlob]);
+      console.log('API Response:', result);
 
       if (result && result.data && result.data[0]) {
         setResult(result.data[0]);
