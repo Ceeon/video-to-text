@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 c3621019b3ef771cfad13fd95d9c988a68fc2e73 chengfeng <chengfeng@Mac-mini.local> 1737094435 +0800	commit (initial): Initial commit
+c3621019b3ef771cfad13fd95d9c988a68fc2e73 0000000000000000000000000000000000000000 chengfeng <chengfeng@Mac-mini.local> 1737094692 +0800	Branch: renamed refs/heads/main to refs/heads/main
+c3621019b3ef771cfad13fd95d9c988a68fc2e73 c3621019b3ef771cfad13fd95d9c988a68fc2e73 chengfeng <chengfeng@Mac-mini.local> 1737094692 +0800	Branch: renamed refs/heads/main to refs/heads/main
+c3621019b3ef771cfad13fd95d9c988a68fc2e73 c3d20693cbd9574fe1e70ee414b0545c18398ac8 chengfeng <chengfeng@Mac-mini.local> 1737095035 +0800	commit: chore: update package-lock.json
+c3d20693cbd9574fe1e70ee414b0545c18398ac8 9350766177135155dcc7122f6c0cbc17b61efa74 chengfeng <chengfeng@Mac-mini.local> 1737095064 +0800	commit: chore: specify Node.js version
+9350766177135155dcc7122f6c0cbc17b61efa74 eb7324b4efa8dcde0446daeb0c2860b4f4b19754 chengfeng <chengfeng@Mac-mini.local> 1737095141 +0800	commit: fix: downgrade dependencies for compatibility
+eb7324b4efa8dcde0446daeb0c2860b4f4b19754 9cc004ff49dc0f6007950bb3cec70ff2d3f3339a chengfeng <chengfeng@Mac-mini.local> 1737095651 +0800	commit: fix: lock dependency versions
+9cc004ff49dc0f6007950bb3cec70ff2d3f3339a 56e5bb221e27e6d71c5cba23a96f25ac821e5ac8 chengfeng <chengfeng@Mac-mini.local> 1737095732 +0800	commit: chore: add npmrc config
+56e5bb221e27e6d71c5cba23a96f25ac821e5ac8 f9b8a26af24dc49416150cc179f6794dcf4410ee chengfeng <chengfeng@Mac-mini.local> 1737095851 +0800	commit: chore: add custom build script
