@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import { client } from '@gradio/client';
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -25,24 +26,12 @@ export default function Home() {
     try {
       setLoading(true);
 
-      // 构造表单数据
-      const formData = new FormData();
-      formData.append('file', selectedFile);
+      // 直接调用 Hugging Face API
+      const app = await client("Ce-creater/whisper");
+      const result = await app.predict(0, [selectedFile]);
 
-      // 发送到 Worker 端点
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data && data.data && data.data[0]) {
-        setResult(data.data[0]);
+      if (result && result.data && result.data[0]) {
+        setResult(result.data[0]);
       } else {
         setResult('无法识别文件内容');
       }
@@ -63,26 +52,22 @@ export default function Home() {
           onChange={handleFileChange}
           accept="audio/*,video/*"
           style={{ display: 'none' }}
-          aria-label="选择文件"
         />
         <button onClick={handleFileClick}>
           选择文件
         </button>
         {selectedFile && (
-          <div>
-            <p>已选择: {selectedFile.name}</p>
-            <button onClick={handleUpload} disabled={loading}>
-              {loading ? '处理中...' : '转换'}
-            </button>
-          </div>
-        )}
-        {result && (
-          <div role="alert">
-            <h3>转换结果:</h3>
-            <p>{result}</p>
-          </div>
+          <button onClick={handleUpload} disabled={loading}>
+            {loading ? '处理中...' : '转换'}
+          </button>
         )}
       </div>
+      {result && (
+        <div>
+          <h3>转换结果：</h3>
+          <p>{result}</p>
+        </div>
+      )}
     </main>
   );
 } 
