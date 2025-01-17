@@ -25,14 +25,27 @@ export default function Home() {
     try {
       setLoading(true);
 
-      // 构造表单数据
-      const formData = new FormData();
-      formData.append('data', selectedFile);
+      // 将文件转换为 base64
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          resolve(base64String.split(',')[1]); // 移除 "data:audio/wav;base64," 前缀
+        };
+        reader.readAsDataURL(selectedFile);
+      });
 
       // 发送请求
       const response = await fetch('https://ce-creater-whisper.hf.space/run/predict', {
         method: 'POST',
-        body: formData
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fn_index: 0,
+          data: [base64],
+          session_hash: Math.random().toString(36).substring(7)
+        })
       });
 
       if (!response.ok) {
