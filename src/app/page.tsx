@@ -29,14 +29,15 @@ export default function Home() {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      // 发送到我们的 API 路由
+      // 发送到 Worker 端点
       const response = await fetch('/api/transcribe', {
         method: 'POST',
         body: formData
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
