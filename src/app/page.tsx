@@ -24,22 +24,22 @@ export default function Home() {
 
     try {
       setLoading(true);
-      const formData = new FormData();
-      formData.append('audio', selectedFile);
+      
+      // 将文件转换为 blob
+      const fileBlob = await selectedFile.arrayBuffer().then(buffer => 
+        new Blob([buffer], { type: selectedFile.type })
+      );
 
+      // 构造请求数据
       const response = await fetch('https://ce-creater-whisper.hf.space/run/predict', {
         method: 'POST',
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          data: [
-            await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result);
-              reader.readAsDataURL(selectedFile);
-            })
-          ]
+          fn_index: 0,
+          data: [fileBlob],
+          session_hash: Math.random().toString(36).substring(7)
         })
       });
 
