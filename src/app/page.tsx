@@ -26,9 +26,12 @@ export default function Home() {
     try {
       setLoading(true);
 
-      // 直接调用 Hugging Face API
+      // 将File对象转换为Blob
+      const fileBlob = new Blob([await selectedFile.arrayBuffer()], { type: selectedFile.type });
+
+      // 使用fn_index而不是路径
       const app = await client("Ce-creater/whisper");
-      const result = await app.predict(0, [selectedFile]);
+      const result = await app.predict(1, [fileBlob]);
 
       if (result && result.data && result.data[0]) {
         setResult(result.data[0]);
