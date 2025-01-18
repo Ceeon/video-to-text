@@ -159,7 +159,7 @@ export default function Home() {
           Audio/Video to Rednote
           <span className="block text-sm text-pink-500 font-normal mt-2">Convert your audio/video to bilingual text ✨</span>
           <a 
-            href="https://twitter.com/ceeon_"
+            href="https://x.com/chengfeng240928"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 mt-3 text-sm text-gray-600 hover:text-gray-800 transition-colors"
@@ -167,7 +167,7 @@ export default function Home() {
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
             </svg>
-            @ceeon_
+            @chengfeng240928
           </a>
         </h1>
 
@@ -330,7 +330,7 @@ export default function Home() {
                     </svg>
                   </div>
                   <h3 className="font-medium text-gray-800">产品设计</h3>
-                  <p className="text-sm text-gray-600 mt-1">@ceeon_</p>
+                  <p className="text-sm text-gray-600 mt-1">@chengfeng240928</p>
                 </div>
                 <div className="p-4 bg-white rounded-lg shadow-sm border border-pink-100">
                   <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-pink-100 to-rose-100 rounded-full flex items-center justify-center">
@@ -339,7 +339,7 @@ export default function Home() {
                     </svg>
                   </div>
                   <h3 className="font-medium text-gray-800">开发</h3>
-                  <p className="text-sm text-gray-600 mt-1">@ceeon_</p>
+                  <p className="text-sm text-gray-600 mt-1">@chengfeng240928</p>
                 </div>
                 <div className="p-4 bg-white rounded-lg shadow-sm border border-pink-100 sm:col-span-2 md:col-span-1">
                   <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-pink-100 to-rose-100 rounded-full flex items-center justify-center">
@@ -348,7 +348,7 @@ export default function Home() {
                     </svg>
                   </div>
                   <h3 className="font-medium text-gray-800">技术支持</h3>
-                  <p className="text-sm text-gray-600 mt-1">@ceeon_</p>
+                  <p className="text-sm text-gray-600 mt-1">@chengfeng240928</p>
                 </div>
               </div>
             </div>
