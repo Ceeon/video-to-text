@@ -350,6 +350,26 @@ export default function Home() {
                     @PMbackttfuture
                   </a>
                 </div>
+
+                <div className="p-4 bg-white rounded-lg shadow-sm border border-pink-100">
+                  <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-pink-100 to-rose-100 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-pink-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <h3 className="font-medium text-gray-800">Advisor</h3>
+                  <a 
+                    href="https://x.com/Doooougie"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 mt-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    @Doooougie
+                  </a>
+                </div>
               </div>
             </div>
           </div>
