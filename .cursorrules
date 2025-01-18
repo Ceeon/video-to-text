@@ -134,6 +134,42 @@ npx wrangler secret list
    - CPU: 10ms
    - Environment: Production
 
+## Worker Configuration Parameters
+1. Whisper API:
+   - Model: `openai/whisper-large-v3`
+   - Task: `transcribe`
+   - Language: `en`
+   - API Endpoint: `https://api-inference.huggingface.co/models/openai/whisper-large-v3`
+
+2. Silicon Flow API:
+   - Model: `Qwen/Qwen2-VL-72B-Instruct`
+   - API Endpoint: `https://api.siliconflow.com/v1/chat/completions`
+   - Parameters:
+     - Temperature: 0.2
+     - Top P: 0.9
+     - Frequency Penalty: 0.1
+     - Max Tokens: 1000
+
+3. CORS Settings:
+   ```js
+   {
+     'Access-Control-Allow-Origin': '*',
+     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+     'Access-Control-Max-Age': '86400'
+   }
+   ```
+
+4. Content Types:
+   - Audio: `audio/mpeg`, `audio/wav`, `audio/m4a`
+   - Video: `video/mp4`
+   - Response: `application/json`
+
+5. Rate Limits:
+   - Whisper API: 250 requests per day
+   - Silicon Flow API: 1000 tokens per minute
+   - File size: Max 25MB
+
 # 对代码进行详细的注释
 
 代码做好注释，类似 API 对接文档，涉及状态管理、数据管理，统一分类显示，其他只是引用，例如
