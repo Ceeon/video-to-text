@@ -158,6 +158,17 @@ export default function Home() {
         <h1 className="text-3xl font-bold mb-6 text-gray-800 text-center">
           Audio/Video to Rednote
           <span className="block text-sm text-pink-500 font-normal mt-2">Convert your audio/video to bilingual text ✨</span>
+          <a 
+            href="https://twitter.com/ceeon_"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 mt-3 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            @ceeon_
+          </a>
         </h1>
 
         <div className="space-y-6">
@@ -305,6 +316,43 @@ export default function Home() {
               </div>
             </div>
           )}
+
+          {/* Team Section */}
+          <div className="mt-12 pt-8 border-t border-pink-100">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">制作团队</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                <div className="p-4 bg-white rounded-lg shadow-sm border border-pink-100">
+                  <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-pink-100 to-rose-100 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-pink-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                      <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <h3 className="font-medium text-gray-800">产品设计</h3>
+                  <p className="text-sm text-gray-600 mt-1">@ceeon_</p>
+                </div>
+                <div className="p-4 bg-white rounded-lg shadow-sm border border-pink-100">
+                  <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-pink-100 to-rose-100 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-pink-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" />
+                    </svg>
+                  </div>
+                  <h3 className="font-medium text-gray-800">开发</h3>
+                  <p className="text-sm text-gray-600 mt-1">@ceeon_</p>
+                </div>
+                <div className="p-4 bg-white rounded-lg shadow-sm border border-pink-100 sm:col-span-2 md:col-span-1">
+                  <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-pink-100 to-rose-100 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-pink-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="font-medium text-gray-800">技术支持</h3>
+                  <p className="text-sm text-gray-600 mt-1">@ceeon_</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
