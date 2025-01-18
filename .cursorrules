@@ -85,3 +85,207 @@ ssh -T git@github.com
 ```bash
 git push -f origin main
 ```
+
+## Cloudflare Worker Deployment
+```bash
+# Install Wrangler CLI (first time only)
+npm install -g wrangler
+
+# Login to Cloudflare (first time only)
+npx wrangler login
+
+# Deploy Worker
+npx wrangler deploy worker.js
+
+# Set environment variables
+npx wrangler secret put HUGGING_FACE_TOKEN
+npx wrangler secret put SILICON_FLOW_TOKEN
+
+# View Worker logs
+npx wrangler tail
+
+# Test Worker locally
+npx wrangler dev worker.js
+
+# Common issues:
+# 1. If deployment fails with auth error:
+npx wrangler login --reauth
+
+# 2. If you need to update environment variables:
+npx wrangler secret delete VARIABLE_NAME
+npx wrangler secret put VARIABLE_NAME
+
+# 3. Check Worker status:
+npx wrangler status
+
+# 4. List all secrets:
+npx wrangler secret list
+```
+
+## Worker Environment Setup
+1. Create account at https://dash.cloudflare.com
+2. Navigate to "Workers & Pages"
+3. Create new Worker
+4. Set environment variables:
+   - `HUGGING_FACE_TOKEN`: Whisper API token
+   - `SILICON_FLOW_TOKEN`: Translation API token
+5. Configure Worker settings:
+   - Memory: 128 MB
+   - CPU: 10ms
+   - Environment: Production
+
+# 对代码进行详细的注释
+
+代码做好注释，类似 API 对接文档，涉及状态管理、数据管理，统一分类显示，其他只是引用，例如
+"""
+/**
+ * 微信小程序时间记录应用 - 数据库服务
+ * ============================
+ * 
+ * 简介
+ * ----
+ * 本服务提供了对时间记录数据的增删改查等操作。所有的数据库操作都通过此服务统一管理，
+ * 确保了数据操作的一致性和可维护性。
+ * 
+ * 环境配置
+ * --------
+ * - 云开发环境ID：
+ * - 基础库要求：2.2.3 或以上
+ * 
+ * 数据库表结构
+ * -----------
+ * records 表
+ * | 字段名    | 类型   | 必填 | 描述        | 示例值                    |
+ * |-----------|--------|------|-------------|--------------------------|
+ * | _id       | string | 是   | 记录ID      | "a40fc074675ba1d602a42" |
+ * | _openid   | string | 是   | 用户ID      | "oD7fw6xyKg0EJeZopch3"  |
+ * | text      | string | 是   | 记录内容    | "写周报"                 |
+ * | startTime | number | 是   | 开始时间戳  | 1734058454479           |
+ * | endTime   | number | 是   | 结束时间戳  | 1734071749987           |
+ * | duration  | number | 是   | 持续时间(h) | 2.5                     |
+ * | createdAt | date   | 是   | 创建时间    | "2024-12-13T02:17:31Z"  |
+ * | updatedAt | date   | 是   | 更新时间    | "2024-12-13T02:17:31Z"  |
+ * 
+ * 错误处理
+ * --------
+ * 所有方法都会在失败时抛出错误。建议使用 try-catch 进行错误处理：
+ * ```javascript
+ * try {
+ *   await database.addEvent(event)
+ * } catch (error) {
+ *   console.error('操作失败:', error)
+ *   wx.showToast({ title: '操作失败', icon: 'none' })
+ * }
+ * ```
+ * 
+ * 常见错误类型：
+ * 1. 网络错误：检查网络连接
+ * 2. 权限错误：检查用户是否登录
+ * 3. 参数错误：检查传入的参数
+ * 4. 数据库错误：检查数据格式
+ */
+
+class DatabaseService {
+  /**
+   * 初始化数据库服务
+   * =================
+   * 
+   * 功能说明：
+   * 初始化云开发环境，设置环境ID和用户跟踪。
+   * 
+   * 注意事项：
+   * 1. 确保在 app.json 中声明了云开发模块
+   * 2. 确保基础库版本 >= 2.2.3
+   */
+  constructor() {
+    if (!wx.cloud) {
+      console.error('请使用 2.2.3 或以上的基础库以使用云能力')
+      return
+    }
+    wx.cloud.init({
+      env: 'yongshi-8gr2j4wf0508bf4d',
+      traceUser: true,
+    })
+  }
+
+  // 内部工具方法
+  getDB() { return wx.cloud.database() }
+  async getUserId() {
+    const { result } = await wx.cloud.callFunction({ name: 'getOpenId' })
+    return result.openid
+  }
+
+  // 格式化日期时间（兼容 iOS）
+  formatDateTime(date) {
+    if (!date) return null
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return null
+    
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    const hours = String(d.getHours()).padStart(2, '0')
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    const seconds = String(d.getSeconds()).padStart(2, '0')
+    
+    // 使用 ISO 8601 格式
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+08:00`
+  }
+
+  /**
+   * 获取记录列表
+   * ===========
+   * 
+   * 接口名称：getEvents
+   * 
+   * 功能说明：
+   * 获取用户的时间记录列表，支持分页和排序。
+   * 
+   * 请求参数：
+   * @param {Object} options 查询选项
+   * @param {number} [options.limit=100] 获取记录的数量限制
+   * @param {string} [options.orderBy='endTime'] 排序字段
+   * @param {string} [options.order='desc'] 排序方式：
+   *                                        - 'desc': 降序
+   *                                        - 'asc': 升序
+   * 
+   * 返回数据：
+   * @returns {Promise<Array>} 记录列表，每条记录包含：
+   * - id: string        记录ID
+   * - text: string      记录内容
+   * - startTime: number 开始时间
+   * - endTime: number   结束时间
+   * - duration: number  持续时间
+   * 
+   * 使用示例：
+   * ```javascript
+   * // 获取最新的10条记录
+   * const events = await database.getEvents({ 
+   *   limit: 10,
+   *   orderBy: 'endTime',
+   *   order: 'desc'
+   * })
+   * ```
+   */
+  async getEvents(options = {}) {
+    try {
+      const { limit = 100, orderBy = 'endTime', order = 'desc' } = options
+      const db = this.getDB()
+      const openid = await this.getUserId()
+      
+      const result = await db.collection('records')
+        .where({ _openid: openid })
+        .orderBy(orderBy, order)
+        .limit(limit)
+        .get()
+
+      return result.data
+    } catch (error) {
+      console.error('获取记录列表失败:', error)
+      throw error
+    }
+  }
+"""
+
+# 修改完内容，解决完问题，更新对应文件夹里的 readme.md，说明是如何处理的，如果没有，则新建
+
