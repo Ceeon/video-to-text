@@ -275,21 +275,18 @@ async function handleTranscribe(request, env) {
         console.log('音频数据已转换为 Base64，长度:', base64Audio.length);
         
         transcribeResponse = await fetch(
-          'https://api-inference.huggingface.co/models/Ce-creater/whisper',
+          'https://api-inference.huggingface.co/models/Ce-creater/whisper/predict',  // 添加 /predict 端点
           {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${env.HF_TOKEN}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              inputs: base64Audio,
-              parameters: {
-                task: "transcribe",
-                language: "en",
-                return_timestamps: true
-              }
+              data: [
+                base64Audio  // 直接发送 Base64 编码的音频数据
+              ],
+              api_name: "/predict"
             })
           }
         );
