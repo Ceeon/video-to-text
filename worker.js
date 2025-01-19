@@ -98,12 +98,21 @@ export default {
 }
 
 async function handleTranscribe(request, env) {
+  let file;  // 在函数开始处声明 file 变量
   try {
     const formData = await request.formData();
-    const file = formData.get('file');
+    file = formData.get('file');
     
     if (!file) {
-      return new Response('未找到文件', { status: 400 });
+      return new Response(JSON.stringify({
+        error: '未找到文件',
+        timestamp: new Date().toISOString()
+      }), { 
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
     }
 
     console.log('开始处理文件:', file.name, 'size:', file.size);
@@ -195,7 +204,7 @@ async function handleTranscribe(request, env) {
       error: error.message,
       timestamp: new Date().toISOString(),
       details: {
-        fileName: file?.name,
+        fileName: file?.name,  // 使用可选链操作符
         fileSize: file?.size,
         stack: error.stack
       }
