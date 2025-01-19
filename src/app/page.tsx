@@ -306,39 +306,25 @@ export default function Home() {
 
           {sentences.length > 0 && (
             <div className="border border-pink-100 rounded-lg overflow-hidden bg-white shadow-sm">
-              <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-pink-100">
-                <div className="p-6">
-                  <h2 className="font-semibold mb-4 text-gray-800 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-500" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                    Original Text
-                  </h2>
-                  <div className="space-y-4">
-                    {sentences.map((sentence) => (
+              <div className="p-6">
+                <h2 className="font-semibold mb-4 text-gray-800 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                  Bilingual Text
+                </h2>
+                <div className="space-y-4">
+                  {sentences.map((sentence) => (
+                    <div key={sentence.id} className="space-y-2">
                       <div 
-                        key={`original-${sentence.id}`}
                         className={`p-4 bg-gray-50 rounded-lg hover:shadow-md transition-all ${
                           currentTranslationIndex === sentence.id ? 'ring-2 ring-pink-500' : ''
                         }`}
                       >
                         {sentence.original}
                       </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="p-6 bg-gradient-to-br from-pink-50 to-white">
-                  <h2 className="font-semibold mb-4 text-gray-800 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-500" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
-                    Chinese Translation
-                  </h2>
-                  <div className="space-y-4">
-                    {sentences.map((sentence) => (
                       <div 
-                        key={`translation-${sentence.id}`}
-                        className={`p-4 bg-white rounded-lg hover:shadow-md transition-all ${
+                        className={`p-4 bg-white border border-pink-50 rounded-lg hover:shadow-md transition-all ${
                           currentTranslationIndex === sentence.id ? 'ring-2 ring-pink-500' : ''
                         }`}
                       >
@@ -350,21 +336,21 @@ export default function Home() {
                                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                Translating...
+                                正在翻译...
                               </>
                             ) : (
                               <>
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                                 </svg>
-                                Waiting for translation
+                                等待翻译
                               </>
                             )}
                           </span>
                         )}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -432,21 +418,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-
-      {loading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl">
-            <div className="flex flex-col items-center gap-3">
-              <svg className="animate-spin h-5 w-5 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span>正在处理中...</span>
-              <span className="text-sm text-gray-500">模型加载可能需要一些时间，请耐心等待</span>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
