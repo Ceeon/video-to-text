@@ -102,79 +102,75 @@ export default {
 }
 
 async function handleTranscribe(request, env) {
-  let formData;
-  let audioData;
   let file;
-  
+  let requestContentType;
   try {
     console.log('开始解析请求...');
-    const requestContentType = request.headers.get('content-type') || '';
+    requestContentType = request.headers.get('content-type') || '';
     console.log('请求 Content-Type:', requestContentType);
 
-    // 尝试使用 formData
+    let formData;
     try {
       formData = await request.formData();
       console.log('FormData 解析成功');
-      file = formData.get('file');
-      if (!file) {
-        throw new Error('FormData 中未找到文件');
-      }
-      audioData = await file.arrayBuffer();
     } catch (formError) {
       console.error('解析 formData 失败:', formError);
       
-      // 如果是 multipart/form-data，需要手动解析
+      // 如果是 multipart/form-data 格式，尝试直接读取 body
       if (requestContentType.includes('multipart/form-data')) {
-        console.log('尝试手动解析 multipart/form-data...');
-        const rawData = await request.arrayBuffer();
-        const boundary = requestContentType.match(/boundary=([^;]+)/)?.[1];
+        const arrayBuffer = await request.arrayBuffer();
+        console.log('获取到原始数据，大小:', arrayBuffer.byteLength);
         
-        if (!boundary) {
-          throw new Error('未找到 boundary 信息');
-        }
-
-        // 将数据转换为字符串以查找文件内容的起始和结束位置
-        const decoder = new TextDecoder('utf-8');
-        const content = decoder.decode(rawData);
-        
-        // 查找文件内容的起始和结束位置
-        const fileStart = content.indexOf('\r\n\r\n') + 4;
-        const fileEnd = content.lastIndexOf(`\r\n--${boundary}--`);
-        
-        if (fileStart === -1 || fileEnd === -1) {
-          throw new Error('无法定位文件内容');
-        }
-
-        // 提取文件内容
-        audioData = rawData.slice(fileStart, fileEnd);
-        
-        // 从头信息中提取文件名
-        const contentDisposition = content.match(/filename="([^"]+)"/);
-        const fileName = contentDisposition ? contentDisposition[1] : 'recording.mp4';
-        
-        file = {
-          name: fileName,
-          size: audioData.byteLength,
-          type: 'video/mp4'
-        };
-        
-        console.log('手动解析成功:', {
-          fileName,
-          fileSize: audioData.byteLength,
-          boundary
+        // 检查设备类型和请求信息
+        const userAgent = request.headers.get('user-agent') || '';
+        const isAndroid = userAgent.toLowerCase().includes('android');
+        const isIOS = userAgent.toLowerCase().includes('iphone');
+        console.log('设备信息:', {
+          userAgent,
+          isAndroid,
+          isIOS,
+          originalContentType: requestContentType
         });
+
+        try {
+          // 创建新的 FormData
+          formData = new FormData();
+          
+          // 根据设备类型设置不同的 content type
+          let blobType = requestContentType;
+          if (isAndroid) {
+            blobType = 'video/mp4'; // Android 可能是视频格式
+          } else if (isIOS) {
+            blobType = 'video/quicktime'; // iOS 通常是 MOV 格式
+          }
+          
+          const blob = new Blob([arrayBuffer], { type: blobType });
+          const fileName = isIOS ? 'recording.mov' : 'recording.mp4';
+          formData.append('file', blob, fileName);
+          console.log('已创建新的 FormData:', {
+            deviceType: isAndroid ? 'Android' : isIOS ? 'iOS' : 'Other',
+            blobType,
+            fileName
+          });
+        } catch (blobError) {
+          console.error('创建 Blob 失败:', blobError);
+          throw new Error('处理移动端文件失败: ' + blobError.message);
+        }
       } else {
-        throw new Error('不支持的请求格式');
+        throw formError;
       }
     }
 
-    if (!audioData) {
+    file = formData.get('file');
+    console.log('文件获取状态:', file ? '成功' : '失败');
+    
+    if (!file) {
       return new Response(JSON.stringify({
-        error: '未能获取文件数据',
+        error: '未找到文件',
         timestamp: new Date().toISOString(),
         details: {
           contentType: requestContentType,
-          formDataAvailable: !!formData
+          formDataKeys: Array.from(formData.keys())
         }
       }), { 
         status: 400,
@@ -185,7 +181,7 @@ async function handleTranscribe(request, env) {
       });
     }
 
-    console.log('文件信息:', {
+    console.log('开始处理文件:', {
       name: file.name,
       size: file.size,
       type: file.type
@@ -227,89 +223,121 @@ async function handleTranscribe(request, env) {
     console.log('文件类型:', fileExtension, '-> Content-Type:', mediaContentType);
 
     // 检查文件大小限制
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
     if (file.size > MAX_FILE_SIZE) {
-      throw new Error(`文件过大：${(file.size / 1024 / 1024).toFixed(2)}MB，超过限制 ${MAX_FILE_SIZE / 1024 / 1024}MB。请上传更小的文件或剪辑音频。`);
+      throw new Error(`文件大小超过限制：${(file.size / 1024 / 1024).toFixed(2)}MB > ${MAX_FILE_SIZE / 1024 / 1024}MB`);
     }
 
-    // 调用 Whisper API 进行音频转录
+    // 获取文件的二进制数据
+    let audioData;
+    try {
+      audioData = await file.arrayBuffer();
+      console.log('文件读取完成, 大小:', audioData.byteLength, '字节');
+    } catch (error) {
+      console.error('读取文件数据失败:', error);
+      throw new Error('读取文件数据失败: ' + error.message);
+    }
+
+    // 调用 Whisper API 进行音频转录（带重试机制）
     console.log('准备发送 Whisper API 请求...');
     let transcribeResponse;
     let transcribeResult;
     let retryCount = 0;
-    const maxRetries = 3;
-    const initialRetryDelay = 1000; // 1秒
+    const maxRetries = 5;
+    const initialRetryDelay = 2000; // 2秒
 
     while (retryCount < maxRetries) {
       try {
-        // 使用标准的 Whisper API 音频格式
+        // 针对移动端特殊处理请求头
         const headers = {
           'Authorization': `Bearer ${env.HF_TOKEN}`,
-          'Content-Type': 'audio/x-wav',  // Whisper API 推荐的格式
+          'Content-Type': mediaContentType,  // 使用文件实际的媒体类型
+          'Accept': 'application/json'
         };
 
-        console.log('发送请求到 Whisper API:', {
-          fileSize: file.size,
-          fileName: file.name,
-          requestId: Date.now()
-        });
-
-        // 创建音频数据
-        const audioBlob = new Blob([audioData], { type: 'audio/x-wav' });
-        const audioArrayBuffer = await audioBlob.arrayBuffer();
-
+        console.log('发送请求到 Whisper API，请求头:', headers);
+        
+        // 使用分块方式转换 Base64
+        function arrayBufferToBase64(buffer) {
+          let binary = '';
+          const bytes = new Uint8Array(buffer);
+          const chunkSize = 1024; // 每次处理 1KB
+          
+          for (let i = 0; i < bytes.length; i += chunkSize) {
+            const chunk = bytes.slice(i, i + chunkSize);
+            chunk.forEach(b => binary += String.fromCharCode(b));
+          }
+          
+          return btoa(binary);
+        }
+        
+        const base64Audio = arrayBufferToBase64(audioData);
+        console.log('音频数据已转换为 Base64，长度:', base64Audio.length);
+        
         transcribeResponse = await fetch(
-          'https://api-inference.huggingface.co/models/Ce-creator/whisper',  // 使用我们自己的模型
+          'https://api-inference.huggingface.co/models/Ce-creator/whisper',
           {
             method: 'POST',
-            headers: headers,
-            body: audioArrayBuffer
+            headers: {
+              'Authorization': `Bearer ${env.HF_TOKEN}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              data: [
+                `data:${mediaContentType};base64,${base64Audio}`
+              ],
+              api_name: "/predict"
+            })
           }
         );
 
         console.log('Whisper API 响应状态:', transcribeResponse.status);
+        console.log('Whisper API 响应头:', JSON.stringify(Object.fromEntries(transcribeResponse.headers)));
         
-        // 检查响应状态
-        if (!transcribeResponse.ok) {
-          const errorText = await transcribeResponse.text();
-          console.error('API 错误响应:', {
-            status: transcribeResponse.status,
-            text: errorText,
-            requestId: Date.now()
-          });
-          
-          // 针对不同错误类型给出具体提示
-          if (transcribeResponse.status === 400) {
-            throw new Error('音频处理失败，请确保文件完整且未损坏');
-          } else if (transcribeResponse.status === 413) {
-            throw new Error('文件太大，请上传更小的文件或剪辑音频（最大支持10MB）');
-          } else if (transcribeResponse.status === 503) {
-            throw new Error('服务暂时不可用，请稍后重试');
-          } else if (transcribeResponse.status === 429) {
-            throw new Error('请求过于频繁，请稍后重试');
-          } else {
-            throw new Error(`API 错误: ${transcribeResponse.status} - ${errorText}`);
-          }
+        const responseText = await transcribeResponse.text();
+        console.log('Whisper API 原始响应:', responseText);
+
+        // 检查响应是否以 "payload" 开头
+        if (responseText.startsWith('payload')) {
+          throw new Error('API 返回了无效格式的响应，可能是文件格式问题');
         }
 
-        // 获取响应
-        const responseText = await transcribeResponse.text();
-        console.log('API 原始响应:', responseText);
-
         try {
-          transcribeResult = JSON.parse(responseText);
-          console.log('解析后的响应:', transcribeResult);
+          // 确保响应是有效的 JSON
+          if (!responseText.trim()) {
+            throw new Error('响应为空');
+          }
+          
+          // 尝试解析 JSON
+          try {
+            transcribeResult = JSON.parse(responseText);
+          } catch (jsonError) {
+            console.error('JSON 解析失败，原始响应:', responseText);
+            // 如果是移动端上传的视频，提供更具体的错误信息
+            if (file.type.includes('video')) {
+              throw new Error('视频文件处理失败，请尝试提取音频后重试');
+            } else {
+              throw new Error('响应格式错误: ' + jsonError.message);
+            }
+          }
+          
+          console.log('Whisper API 解析后的响应:', transcribeResult);
 
-          // 检查响应格式
-          if (!transcribeResult || typeof transcribeResult !== 'object') {
-            throw new Error('响应格式不正确');
+          // 如果不是 503 错误，跳出重试循环
+          if (transcribeResponse.status !== 503) {
+            break;
           }
 
-          // 如果响应成功，跳出重试循环
-          break;
-        } catch (jsonError) {
-          console.error('JSON 解析失败:', jsonError);
-          throw new Error('响应解析失败，请重试');
+          // 如果是 503 错误，等待后重试
+          retryCount++;
+          if (retryCount < maxRetries) {
+            const delay = initialRetryDelay * Math.pow(2, retryCount - 1);
+            console.log(`模型正在加载，${delay/1000}秒后重试 (${retryCount}/${maxRetries})...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        } catch (error) {
+          console.error('处理 Whisper API 响应失败:', error);
+          throw new Error('处理响应失败: ' + error.message);
         }
       } catch (error) {
         console.error('调用 Whisper API 失败:', error);
@@ -367,7 +395,7 @@ async function handleTranscribe(request, env) {
     return new Response(JSON.stringify({ 
       error: error.message,
       timestamp: new Date().toISOString(),
-      details: audioData ? {
+      details: file ? {
         fileName: file.name,
         fileSize: file.size,
         stack: error.stack
