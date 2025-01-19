@@ -135,6 +135,7 @@ export default function Home() {
       // 添加重试机制
       const MAX_RETRIES = 5;  // 最多重试5次
       let retries = 0;
+      let lastError;
       
       while (retries < MAX_RETRIES) {
         try {
@@ -146,50 +147,63 @@ export default function Home() {
             body: formData,
           });
 
-      const responseText = await response.text();
-      console.log('Server response:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers),
-        body: responseText.slice(0, 1000) // 只记录前 1000 个字符
-      });
+          const responseText = await response.text();
+          console.log('Server response:', {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers),
+            body: responseText.slice(0, 1000) // 只记录前 1000 个字符
+          });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}, response: ${responseText}`);
-      }
-
-      let data: TranscribeResponse;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error('JSON parsing error:', e);
-        throw new Error('服务器返回了无效的数据格式');
-      }
-      
-      if (data.sentences && data.sentences.length > 0) {
-        console.log('Transcription successful, starting translation...');
-        setSentences(data.sentences);
-        setMetadata({
-          totalSentences: data.metadata.totalSentences,
-          totalTokens: 0,
-        });
-
-        // Start sentence-by-sentence translation
-        setTranslating(true);
-        for (const sentence of data.sentences) {
-          console.log(`Translating sentence ${sentence.id}:`, sentence.original);
-          const success = await translateSentence(sentence);
-          if (!success) {
-            setError('部分句子翻译失败，请重试');
-            break;
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}, response: ${responseText}`);
           }
-          // Add delay to avoid API limits
-          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          let data: TranscribeResponse;
+          try {
+            data = JSON.parse(responseText);
+          } catch (e) {
+            console.error('JSON parsing error:', e);
+            throw new Error('服务器返回了无效的数据格式');
+          }
+          
+          if (data.sentences && data.sentences.length > 0) {
+            console.log('Transcription successful, starting translation...');
+            setSentences(data.sentences);
+            setMetadata({
+              totalSentences: data.metadata.totalSentences,
+              totalTokens: 0,
+            });
+
+            // Start sentence-by-sentence translation
+            setTranslating(true);
+            for (const sentence of data.sentences) {
+              console.log(`Translating sentence ${sentence.id}:`, sentence.original);
+              const success = await translateSentence(sentence);
+              if (!success) {
+                setError('部分句子翻译失败，请重试');
+                break;
+              }
+              // Add delay to avoid API limits
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            setTranslating(false);
+          } else {
+            throw new Error('未能识别出任何句子，请检查音频是否清晰');
+          }
+          break; // 成功后跳出循环
+        } catch (error) {
+          lastError = error;
+          retries++;
+          if (retries < MAX_RETRIES) {
+            console.log(`重试 ${retries}/${MAX_RETRIES}...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+          } else {
+            throw lastError;
+          }
         }
-        setTranslating(false);
-      } else {
-        throw new Error('未能识别出任何句子，请检查音频是否清晰');
-      }
+      } // while 循环结束
+
     } catch (error) {
       console.error('处理失败:', error);
       setError(error instanceof Error ? error.message : '处理文件时出错');
@@ -435,4 +449,4 @@ export default function Home() {
       )}
     </main>
   );
-} 
+}
