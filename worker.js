@@ -275,7 +275,7 @@ async function handleTranscribe(request, env) {
         console.log('音频数据已转换为 Base64，长度:', base64Audio.length);
         
         transcribeResponse = await fetch(
-          'https://api-inference.huggingface.co/models/Ce-creator/whisper',
+          'https://api-inference.huggingface.co/models/openai/whisper-large-v3',
           {
             method: 'POST',
             headers: {
