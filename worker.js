@@ -1,31 +1,99 @@
 export default {
   async fetch(request, env) {
-    // 处理 CORS 预检请求
-    if (request.method === 'OPTIONS') {
-      return new Response(null, {
+    try {
+      // 定义通用的 CORS 头部
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+        'Access-Control-Max-Age': '86400',
+        'Access-Control-Allow-Credentials': 'true'
+      };
+
+      // 处理 CORS 预检请求
+      if (request.method === 'OPTIONS') {
+        return new Response(null, {
+          headers: corsHeaders
+        });
+      }
+
+      // 处理不同类型的请求
+      if (request.method === 'POST') {
+        const url = new URL(request.url);
+        const path = url.pathname;
+
+        try {
+          let response;
+          if (path === '/transcribe') {
+            response = await handleTranscribe(request, env);
+          } else if (path === '/translate') {
+            response = await handleTranslate(request, env);
+          } else {
+            response = new Response(JSON.stringify({
+              error: '无效的请求路径',
+              path: path,
+              timestamp: new Date().toISOString()
+            }), { 
+              status: 404,
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            });
+          }
+
+          // 为所有响应添加 CORS 头部
+          const newHeaders = new Headers(response.headers);
+          Object.entries(corsHeaders).forEach(([key, value]) => {
+            newHeaders.set(key, value);
+          });
+
+          return new Response(response.body, {
+            status: response.status,
+            headers: newHeaders
+          });
+        } catch (error) {
+          console.error('请求处理错误:', error);
+          return new Response(JSON.stringify({
+            error: error.message,
+            timestamp: new Date().toISOString(),
+            stack: error.stack,
+            path: path
+          }), {
+            status: 500,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            }
+          });
+        }
+      }
+
+      return new Response(JSON.stringify({
+        error: '只支持 POST 请求',
+        method: request.method,
+        timestamp: new Date().toISOString()
+      }), {
+        status: 405,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      });
+    } catch (error) {
+      console.error('全局错误:', error);
+      return new Response(JSON.stringify({
+        error: '服务器内部错误',
+        message: error.message,
+        timestamp: new Date().toISOString(),
+        stack: error.stack
+      }), {
+        status: 500,
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, GET',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+          'Content-Type': 'application/json'
         }
       });
     }
-
-    // 处理不同类型的请求
-    if (request.method === 'POST') {
-      const url = new URL(request.url);
-      const path = url.pathname;
-
-      if (path === '/transcribe') {
-        return await handleTranscribe(request, env);
-      } else if (path === '/translate') {
-        return await handleTranslate(request, env);
-      }
-      
-      return new Response('无效的请求路径', { status: 404 });
-    }
-
-    return new Response('只支持 POST 请求', { status: 405 });
   }
 }
 
