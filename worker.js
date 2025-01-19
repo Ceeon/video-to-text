@@ -99,26 +99,11 @@ export default {
 
 async function handleTranscribe(request, env) {
   let file;
-  let audioData;  // 声明在外面
+  let audioData;
   try {
     const formData = await request.formData();
     file = formData.get('file');
     
-    // 添加详细日志
-    console.log('文件信息:', {
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      source: file.name.includes('VID_') ? '手机' : '电脑'  // 根据文件名判断来源
-    });
-
-    audioData = await file.arrayBuffer();  // 使用已声明的变量
-    console.log('文件二进制大小:', audioData.byteLength);
-
-    // 记录前 100 个字节的十六进制，用于分析文件头
-    const header = new Uint8Array(audioData.slice(0, 100));
-    console.log('文件头:', Array.from(header).map(b => b.toString(16).padStart(2, '0')).join(' '));
-
     if (!file) {
       return new Response(JSON.stringify({
         error: '未找到文件',
@@ -130,6 +115,21 @@ async function handleTranscribe(request, env) {
         }
       });
     }
+
+    // 添加详细日志
+    console.log('文件信息:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      source: file.name.includes('VID_') ? '手机' : '电脑'
+    });
+
+    audioData = await file.arrayBuffer();
+    console.log('文件二进制大小:', audioData.byteLength);
+
+    // 记录前 100 个字节的十六进制，用于分析文件头
+    const header = new Uint8Array(audioData.slice(0, 100));
+    console.log('文件头:', Array.from(header).map(b => b.toString(16).padStart(2, '0')).join(' '));
 
     console.log('开始处理文件:', file.name, 'size:', file.size);
 
@@ -336,7 +336,6 @@ async function handleTranslate(request, env) {
       usage: translateResult.usage
     }), {
       headers: {
-        'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache'
       }
@@ -349,7 +348,6 @@ async function handleTranslate(request, env) {
     }), {
       status: 500,
       headers: {
-        'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache'
       }
