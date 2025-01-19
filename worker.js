@@ -99,10 +99,26 @@ export default {
 
 async function handleTranscribe(request, env) {
   let file;
+  let audioData;  // 声明在外面
   try {
     const formData = await request.formData();
     file = formData.get('file');
     
+    // 添加详细日志
+    console.log('文件信息:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      source: file.name.includes('VID_') ? '手机' : '电脑'  // 根据文件名判断来源
+    });
+
+    audioData = await file.arrayBuffer();  // 使用已声明的变量
+    console.log('文件二进制大小:', audioData.byteLength);
+
+    // 记录前 100 个字节的十六进制，用于分析文件头
+    const header = new Uint8Array(audioData.slice(0, 100));
+    console.log('文件头:', Array.from(header).map(b => b.toString(16).padStart(2, '0')).join(' '));
+
     if (!file) {
       return new Response(JSON.stringify({
         error: '未找到文件',
@@ -137,9 +153,6 @@ async function handleTranscribe(request, env) {
       default:
         console.log('未知的文件类型:', fileExtension);
     }
-
-    // 获取文件的二进制数据
-    const audioData = await file.arrayBuffer();
 
     // 添加重试机制调用 Whisper API
     const MAX_RETRIES = 3;
