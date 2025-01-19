@@ -98,7 +98,7 @@ export default {
 }
 
 async function handleTranscribe(request, env) {
-  let file;  // 在函数开始处声明 file 变量
+  let file;
   try {
     const formData = await request.formData();
     file = formData.get('file');
@@ -141,25 +141,66 @@ async function handleTranscribe(request, env) {
     // 获取文件的二进制数据
     const audioData = await file.arrayBuffer();
 
-    // 调用 Whisper API 进行音频转录
-    const transcribeResponse = await fetch(
-      'https://api-inference.huggingface.co/models/openai/whisper-large-v3',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${env.HF_TOKEN}`,
-          'Content-Type': contentType
-        },
-        body: audioData
+    // 添加重试机制调用 Whisper API
+    const MAX_RETRIES = 3;
+    let retries = 0;
+    let transcribeResult;
+    
+    while (retries < MAX_RETRIES) {
+      try {
+        const transcribeResponse = await fetch(
+          'https://api-inference.huggingface.co/models/openai/whisper-large-v3',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${env.HF_TOKEN}`,
+              'Content-Type': contentType
+            },
+            body: audioData
+          }
+        );
+
+        console.log('Whisper API 响应状态:', transcribeResponse.status);
+        
+        // 如果模型正在加载，返回 503 状态码和预估时间
+        if (transcribeResponse.status === 503) {
+          const errorData = await transcribeResponse.json();
+          if (errorData.error?.includes('currently loading')) {
+            retries++;
+            const waitTime = Math.min(errorData.estimated_time * 1000 || 10000, 30000);
+            console.log(`模型加载中，等待 ${waitTime/1000} 秒后重试(${retries}/${MAX_RETRIES})...`);
+            
+            // 返回 503 状态和预估时间给客户端
+            return new Response(JSON.stringify({
+              error: '模型加载中',
+              estimated_time: errorData.estimated_time,
+              retry_count: retries,
+              max_retries: MAX_RETRIES
+            }), {
+              status: 503,
+              headers: {
+                'Content-Type': 'application/json',
+                'Retry-After': Math.ceil(waitTime / 1000).toString()
+              }
+            });
+          }
+        }
+
+        transcribeResult = await transcribeResponse.json();
+        console.log('Whisper API 响应内容:', JSON.stringify(transcribeResult));
+
+        if (!transcribeResponse.ok) {
+          throw new Error(`转录失败: ${transcribeResponse.status} - ${JSON.stringify(transcribeResult)}`);
+        }
+
+        break; // 成功获取结果，跳出循环
+      } catch (error) {
+        console.error(`转录尝试 ${retries + 1}/${MAX_RETRIES} 失败:`, error);
+        if (retries === MAX_RETRIES - 1) throw error;
+        retries++;
+        // 等待时间递增
+        await new Promise(resolve => setTimeout(resolve, 5000 * retries));
       }
-    );
-
-    console.log('Whisper API 响应状态:', transcribeResponse.status);
-    const transcribeResult = await transcribeResponse.json();
-    console.log('Whisper API 响应内容:', JSON.stringify(transcribeResult));
-
-    if (!transcribeResponse.ok) {
-      throw new Error(`转录失败: ${transcribeResponse.status} - ${JSON.stringify(transcribeResult)}`);
     }
 
     const englishText = transcribeResult.text;
@@ -189,11 +230,11 @@ async function handleTranscribe(request, env) {
         totalSentences: sentences.length,
         fileType: contentType,
         fileName: file.name,
-        fileSize: file.size
+        fileSize: file.size,
+        retryCount: retries
       }
     }), {
       headers: {
-        'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache'
       }
@@ -204,14 +245,13 @@ async function handleTranscribe(request, env) {
       error: error.message,
       timestamp: new Date().toISOString(),
       details: {
-        fileName: file?.name,  // 使用可选链操作符
+        fileName: file?.name,
         fileSize: file?.size,
         stack: error.stack
       }
     }), {
       status: 500,
       headers: {
-        'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache'
       }
