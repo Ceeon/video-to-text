@@ -89,20 +89,51 @@ export default function Home() {
 
     setLoading(true);
     setError('');
-    console.log('Starting file upload:', selectedFile.name, 'size:', selectedFile.size);
+    console.log('Starting file upload:', {
+      name: selectedFile.name,
+      size: selectedFile.size,
+      type: selectedFile.type,
+      lastModified: new Date(selectedFile.lastModified).toISOString()
+    });
 
     try {
+      // 检查文件大小
+      const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+      if (selectedFile.size > MAX_FILE_SIZE) {
+        throw new Error(`File size exceeds limit: ${(selectedFile.size / 1024 / 1024).toFixed(2)}MB > 25MB`);
+      }
+
+      // 检查文件类型
+      const supportedTypes = [
+        'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-wav',
+        'audio/aac', 'audio/ogg', 'audio/webm', 'audio/x-m4a',
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v'
+      ];
+      
+      if (!supportedTypes.includes(selectedFile.type)) {
+        console.warn('Unsupported file type:', selectedFile.type);
+      }
+
       const formData = new FormData();
       formData.append('file', selectedFile);
 
       console.log('Sending transcription request...');
       const response = await fetch('https://royal-queen-2868.zhongce-xie.workers.dev/transcribe', {
         method: 'POST',
+        headers: {
+          // 不需要手动设置 Content-Type，因为 FormData 会自动设置正确的 boundary
+          'Accept': 'application/json'
+        },
         body: formData,
       });
 
       const responseText = await response.text();
-      console.log('Server response:', response.status, responseText);
+      console.log('Server response:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers),
+        body: responseText.slice(0, 1000) // 只记录前 1000 个字符
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}, response: ${responseText}`);
@@ -113,7 +144,7 @@ export default function Home() {
         data = JSON.parse(responseText);
       } catch (e) {
         console.error('JSON parsing error:', e);
-        throw new Error('Invalid server response format');
+        throw new Error('服务器返回了无效的数据格式');
       }
       
       if (data.sentences && data.sentences.length > 0) {
@@ -130,7 +161,7 @@ export default function Home() {
           console.log(`Translating sentence ${sentence.id}:`, sentence.original);
           const success = await translateSentence(sentence);
           if (!success) {
-            setError('Some sentences failed to translate, please retry');
+            setError('部分句子翻译失败，请重试');
             break;
           }
           // Add delay to avoid API limits
@@ -138,11 +169,13 @@ export default function Home() {
         }
         setTranslating(false);
       } else {
-        throw new Error('No valid transcription results received');
+        throw new Error('未能识别出任何句子，请检查音频是否清晰');
       }
     } catch (error) {
       console.error('Processing failed:', error);
-      setError(error instanceof Error ? error.message : 'Error processing file');
+      setError(error instanceof Error ? 
+        error.message.includes('HTTP error!') ? '服务器处理失败，请重试' : error.message 
+        : '处理文件时出错');
       setSentences([]);
       setMetadata(null);
     } finally {

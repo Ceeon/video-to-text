@@ -7,3 +7,6 @@ compatibility_flags = ["nodejs_compat"]
 # 在 Cloudflare Dashboard 中设置
 # HF_TOKEN = "你的 Hugging Face API Token"
 # SF_TOKEN = "你的硅基流动 API Token" 
+
+[observability.logs]
+enabled = true 
