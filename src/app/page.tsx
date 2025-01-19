@@ -8,17 +8,26 @@ interface Sentence {
   translation: string | null;
 }
 
+interface TranscribeMetadata {
+  totalSentences: number;
+  fileType: string;
+  fileName: string;
+  fileSize: number;
+}
+
 interface TranscribeResponse {
   sentences: Sentence[];
-  metadata: {
-    totalSentences: number;
-  };
+  metadata: TranscribeMetadata;
 }
 
 interface TranslateResponse {
   id: number;
   translation: string;
-  usage: any;
+  usage: {
+    total_tokens: number;
+    completion_tokens: number;
+    prompt_tokens: number;
+  };
 }
 
 export default function Home() {
@@ -46,64 +55,63 @@ export default function Home() {
   const translateSentence = async (sentence: Sentence) => {
     try {
       setCurrentTranslationIndex(sentence.id);
-      const response = await fetch('https://royal-queen-2868.zhongce-xie.workers.dev/translate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: sentence.original,
-          id: sentence.id,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Translation failed: ${response.status}`);
-      }
-
-      const result: TranslateResponse = await response.json();
       
-      setSentences(prev => prev.map(s => 
-        s.id === result.id 
-          ? { ...s, translation: result.translation }
-          : s
-      ));
+      // 添加重试机制
+      const MAX_RETRIES = 3;
+      let retries = 0;
+      
+      while (retries < MAX_RETRIES) {
+        try {
+          const response = await fetch('https://royal-queen-2868.zhongce-xie.workers.dev/translate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              text: sentence.original,
+              id: sentence.id,
+            }),
+          });
 
-      setMetadata(prev => ({
-        totalSentences: prev?.totalSentences || 0,
-        totalTokens: (prev?.totalTokens || 0) + (result.usage?.total_tokens || 0),
-      }));
+          if (!response.ok) {
+            throw new Error(`翻译失败: ${response.status}`);
+          }
 
-      return true;
+          const result: TranslateResponse = await response.json();
+          
+          setSentences(prev => prev.map(s => 
+            s.id === result.id 
+              ? { ...s, translation: result.translation }
+              : s
+          ));
+
+          return true;
+        } catch (error) {
+          retries++;
+          if (retries === MAX_RETRIES) throw error;
+          // 等待后重试
+          await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+        }
+      }
+      
+      return false;
     } catch (error) {
-      console.error('Failed to translate sentence:', error);
+      console.error('翻译句子失败:', error);
       return false;
     }
   };
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      setError('Please select a file first');
+      setError('请选择文件');
       return;
     }
 
     setLoading(true);
     setError('');
-    console.log('Starting file upload:', {
-      name: selectedFile.name,
-      size: selectedFile.size,
-      type: selectedFile.type,
-      lastModified: new Date(selectedFile.lastModified).toISOString()
-    });
-
+    
     try {
-      // 检查文件大小
-      const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
-      if (selectedFile.size > MAX_FILE_SIZE) {
-        throw new Error(`File size exceeds limit: ${(selectedFile.size / 1024 / 1024).toFixed(2)}MB > 25MB`);
-      }
-
-      // 检查文件类型
+      // 添加文件类型检查
       const supportedTypes = [
         'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-wav',
         'audio/aac', 'audio/ogg', 'audio/webm', 'audio/x-m4a',
@@ -111,21 +119,32 @@ export default function Home() {
       ];
       
       if (!supportedTypes.includes(selectedFile.type)) {
-        console.warn('Unsupported file type:', selectedFile.type);
+        throw new Error(`不支持的文件类型: ${selectedFile.type}`);
+      }
+
+      // 添加文件大小检查
+      const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+      if (selectedFile.size > MAX_FILE_SIZE) {
+        throw new Error(`文件大小超过限制: ${(selectedFile.size / 1024 / 1024).toFixed(2)}MB > 25MB`);
       }
 
       const formData = new FormData();
       formData.append('file', selectedFile);
 
       console.log('Sending transcription request...');
-      const response = await fetch('https://royal-queen-2868.zhongce-xie.workers.dev/transcribe', {
-        method: 'POST',
-        headers: {
-          // 不需要手动设置 Content-Type，因为 FormData 会自动设置正确的 boundary
-          'Accept': 'application/json'
-        },
-        body: formData,
-      });
+      // 添加重试机制
+      const MAX_RETRIES = 5;  // 最多重试5次
+      let retries = 0;
+      
+      while (retries < MAX_RETRIES) {
+        try {
+          const response = await fetch('https://royal-queen-2868.zhongce-xie.workers.dev/transcribe', {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json'
+            },
+            body: formData,
+          });
 
       const responseText = await response.text();
       console.log('Server response:', {
@@ -172,10 +191,8 @@ export default function Home() {
         throw new Error('未能识别出任何句子，请检查音频是否清晰');
       }
     } catch (error) {
-      console.error('Processing failed:', error);
-      setError(error instanceof Error ? 
-        error.message.includes('HTTP error!') ? '服务器处理失败，请重试' : error.message 
-        : '处理文件时出错');
+      console.error('处理失败:', error);
+      setError(error instanceof Error ? error.message : '处理文件时出错');
       setSentences([]);
       setMetadata(null);
     } finally {
@@ -401,6 +418,21 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl">
+            <div className="flex flex-col items-center gap-3">
+              <svg className="animate-spin h-5 w-5 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>正在处理中...</span>
+              <span className="text-sm text-gray-500">模型加载可能需要一些时间，请耐心等待</span>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 } 
